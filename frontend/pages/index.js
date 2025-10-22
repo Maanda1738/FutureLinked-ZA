@@ -30,7 +30,7 @@ export default function Home() {
     setHasSearched(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/search?q=${encodeURIComponent(query)}&location=${encodeURIComponent(location)}&page=1&limit=15`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/search?q=${encodeURIComponent(query)}&location=${encodeURIComponent(location)}&page=1&limit=15`);
       const data = await response.json();
       
       if (data.success) {
@@ -60,7 +60,7 @@ export default function Home() {
     const nextPage = currentPage + 1;
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/search?q=${encodeURIComponent(searchQuery)}&location=${encodeURIComponent(searchLocation)}&page=${nextPage}&limit=15`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/search?q=${encodeURIComponent(searchQuery)}&location=${encodeURIComponent(searchLocation)}&page=${nextPage}&limit=15`);
       const data = await response.json();
       
       if (data.success && data.results && data.results.length > 0) {

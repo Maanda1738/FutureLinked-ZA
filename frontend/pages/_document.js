@@ -31,6 +31,9 @@ export default function Document() {
         {/* Google Search Console Verification */}
         <meta name="google-site-verification" content="PSvgAYtMtHjSlq9AanDxuUcF1JtBvJWObHtezovLt8A" />
         
+        {/* Google AdSense Account Verification */}
+        <meta name="google-adsense-account" content="ca-pub-5675694305993193" />
+        
         {/* Preconnect to backend API */}
         <link rel="preconnect" href="http://localhost:3001" />
         <link rel="dns-prefetch" href="http://localhost:3001" />

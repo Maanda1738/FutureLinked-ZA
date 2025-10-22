@@ -26,9 +26,9 @@ app.use(limiter);
 
 app.use(express.json());
 
-// Routes
-app.use('/api/search', searchRoute);
-app.use('/api/health', healthRoute);
+// Routes - no /api prefix needed since function is already at /.netlify/functions/api
+app.use('/search', searchRoute);
+app.use('/health', healthRoute);
 
 // Error handling
 app.use((err, req, res, next) => {

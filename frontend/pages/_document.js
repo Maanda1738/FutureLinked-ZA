@@ -28,6 +28,9 @@ export default function Document() {
         <meta name="twitter:card" content="summary" />
         <meta name="twitter:image" content="/logo.svg" />
         
+        {/* Google Search Console Verification */}
+        <meta name="google-site-verification" content="PSvgAYtMtHjSlq9AanDxuUcF1JtBvJWObHtezovLt8A" />
+        
         {/* Preconnect to backend API */}
         <link rel="preconnect" href="http://localhost:3001" />
         <link rel="dns-prefetch" href="http://localhost:3001" />

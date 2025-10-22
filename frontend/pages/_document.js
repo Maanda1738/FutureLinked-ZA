@@ -31,6 +31,13 @@ export default function Document() {
         {/* Preconnect to backend API */}
         <link rel="preconnect" href="http://localhost:3001" />
         <link rel="dns-prefetch" href="http://localhost:3001" />
+        
+        {/* Google AdSense */}
+        <script 
+          async 
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5675694305993193"
+          crossOrigin="anonymous"
+        />
       </Head>
       <body>
         <Main />

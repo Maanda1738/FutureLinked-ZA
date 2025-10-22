@@ -1,0 +1,13 @@
+[build]
+  base = "frontend"
+  publish = "frontend/.next"
+  command = "npm run build"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[build.environment]
+  NODE_VERSION = "18.0.0"
+  NEXT_PUBLIC_API_URL = "https://futurelinked-za-backend.onrender.com"

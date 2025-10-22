@@ -48,17 +48,51 @@ exports.handler = async (event, context) => {
       }
     });
 
+    // Helper function to extract requirements from description
+    const extractRequirements = (description) => {
+      if (!description) return [];
+      
+      const requirements = [];
+      const text = description.toLowerCase();
+      
+      // Common requirement patterns
+      const patterns = [
+        /requirements?:(.+?)(?:\n\n|\.|responsibilities|duties|$)/is,
+        /qualifications?:(.+?)(?:\n\n|\.|responsibilities|duties|$)/is,
+        /must have:(.+?)(?:\n\n|\.|responsibilities|duties|$)/is,
+        /skills?:(.+?)(?:\n\n|\.|responsibilities|duties|$)/is,
+      ];
+      
+      for (const pattern of patterns) {
+        const match = description.match(pattern);
+        if (match && match[1]) {
+          const reqText = match[1];
+          // Split by bullet points or newlines
+          const items = reqText.split(/[•\-\n]/).filter(item => {
+            const cleaned = item.trim();
+            return cleaned.length > 10 && cleaned.length < 150;
+          });
+          requirements.push(...items.map(item => item.trim()).slice(0, 5));
+          break;
+        }
+      }
+      
+      return requirements.slice(0, 5);
+    };
+
     const jobs = response.data.results.map(job => ({
       id: job.id,
       title: job.title,
       company: job.company.display_name,
       location: job.location.display_name,
       description: job.description,
+      requirements: extractRequirements(job.description),
       salary: job.salary_min && job.salary_max 
         ? `R${job.salary_min.toLocaleString()} - R${job.salary_max.toLocaleString()}`
         : 'Not specified',
       url: job.redirect_url,
       created: job.created,
+      posted: job.created,
       source: 'Adzuna'
     }));
 

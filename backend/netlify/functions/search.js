@@ -55,26 +55,50 @@ exports.handler = async (event, context) => {
       const requirements = [];
       const text = description.toLowerCase();
       
-      // Common requirement patterns
-      const patterns = [
-        /requirements?:(.+?)(?:\n\n|\.|responsibilities|duties|$)/is,
-        /qualifications?:(.+?)(?:\n\n|\.|responsibilities|duties|$)/is,
-        /must have:(.+?)(?:\n\n|\.|responsibilities|duties|$)/is,
-        /skills?:(.+?)(?:\n\n|\.|responsibilities|duties|$)/is,
+      // Look for sections with requirements keywords
+      const sections = [
+        { pattern: /requirements?[:\s]+(.+?)(?:responsibilities|duties|about|what we offer|benefits|apply|$)/is, priority: 1 },
+        { pattern: /qualifications?[:\s]+(.+?)(?:responsibilities|duties|about|what we offer|benefits|apply|$)/is, priority: 1 },
+        { pattern: /minimum requirements?[:\s]+(.+?)(?:responsibilities|duties|about|what we offer|benefits|apply|$)/is, priority: 1 },
+        { pattern: /essential[:\s]+(.+?)(?:responsibilities|duties|about|what we offer|benefits|apply|$)/is, priority: 2 },
+        { pattern: /you (?:will need|must have|should have)[:\s]+(.+?)(?:responsibilities|duties|about|what we offer|benefits|apply|$)/is, priority: 2 },
       ];
       
-      for (const pattern of patterns) {
-        const match = description.match(pattern);
+      for (const section of sections) {
+        const match = description.match(section.pattern);
         if (match && match[1]) {
           const reqText = match[1];
-          // Split by bullet points or newlines
-          const items = reqText.split(/[•\-\n]/).filter(item => {
+          // Split by bullet points, newlines, or numbered lists
+          const items = reqText.split(/[•\-\n]|(?:\d+\.)/).filter(item => {
             const cleaned = item.trim();
-            return cleaned.length > 10 && cleaned.length < 150;
+            return cleaned.length > 15 && cleaned.length < 200;
           });
-          requirements.push(...items.map(item => item.trim()).slice(0, 5));
-          break;
+          
+          requirements.push(...items.map(item => item.trim().replace(/^[:\s]+/, '')).slice(0, 5));
+          if (requirements.length >= 3) break;
         }
+      }
+      
+      // If no structured requirements found, extract key qualifications from text
+      if (requirements.length === 0) {
+        const keywords = [
+          /(?:bachelor'?s?|master'?s?|degree|diploma|matric)/i,
+          /\d+\+?\s*(?:years?|months?) (?:of )?experience/i,
+          /(?:must have|required|essential).*?(?:qualification|certificate|license)/i,
+        ];
+        
+        keywords.forEach(keyword => {
+          const match = description.match(keyword);
+          if (match && requirements.length < 3) {
+            const sentence = description.substring(
+              Math.max(0, match.index - 50),
+              Math.min(description.length, match.index + match[0].length + 100)
+            ).trim();
+            if (sentence.length > 20) {
+              requirements.push(sentence);
+            }
+          }
+        });
       }
       
       return requirements.slice(0, 5);

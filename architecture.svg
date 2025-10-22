@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <style>
+    .box { fill: #ffffff; stroke: #2b6cb0; stroke-width: 2; rx: 8; }
+    .small { font: 12px; fill: #1a202c; font-family: Arial, Helvetica, sans-serif; }
+    .title { font: 16px; font-weight: bold; fill: #2b6cb0; font-family: Arial, Helvetica, sans-serif; }
+    .cloud { fill: #f7fafc; stroke: #4a5568; stroke-width: 1.5; rx: 12; }
+    .arrow { stroke: #2d3748; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+  </style>
+
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="8" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2d3748" />
+    </marker>
+  </defs>
+
+  <!-- Frontend -->
+  <g transform="translate(50,40)">
+    <rect class="box" x="0" y="0" width="350" height="140" />
+    <text class="title" x="18" y="28">Frontend (React / Next.js)</text>
+    <text class="small" x="18" y="52">Search UI, results list, ad slots, responsive</text>
+    <text class="small" x="18" y="72">Components: SearchBar, ResultsList, AdBanner, VideoPlayer</text>
+    <text class="small" x="18" y="92">Hosted: Vercel / Netlify / Cloudflare Pages</text>
+  </g>
+
+  <!-- Backend -->
+  <g transform="translate(420,40)">
+    <rect class="box" x="0" y="0" width="360" height="240" />
+    <text class="title" x="18" y="28">Backend (Node.js, Express)</text>
+    <text class="small" x="18" y="52">API endpoints: /search, /health, /ads</text>
+    <text class="small" x="18" y="72">Job Fetcher: API clients + scraper workers</text>
+    <text class="small" x="18" y="92">Aggregator: dedupe, normalize, filter</text>
+    <text class="small" x="18" y="112">Caching: Redis or in-memory TTL</text>
+    <text class="small" x="18" y="132">Auth: API keys stored in env, rate-limiter</text>
+    <text class="small" x="18" y="152">Deployed: Render / Railway / Fly.io</text>
+
+    <!-- Sub-components inside backend -->
+    <rect x="18" y="170" width="150" height="50" class="cloud" />
+    <text class="small" x="28" y="198">Scraper Workers</text>
+
+    <rect x="192" y="170" width="150" height="50" class="cloud" />
+    <text class="small" x="202" y="198">Ad Selector & Billing</text>
+  </g>
+
+  <!-- Databases / Stores -->
+  <g transform="translate(420,320)">
+    <rect class="box" x="0" y="0" width="340" height="120" />
+    <text class="title" x="18" y="28">Data Layer (Optional)</text>
+    <text class="small" x="18" y="52">MongoDB Atlas / Firebase / Postgres</text>
+    <text class="small" x="18" y="72">Stores: cached search results, analytics, sponsors</text>
+    <text class="small" x="18" y="92">CDC: collect click-through metrics for ads</text>
+  </g>
+
+  <!-- External APIs & Sources -->
+  <g transform="translate(820,40)">
+    <rect class="box" x="0" y="0" width="320" height="220" />
+    <text class="title" x="18" y="28">External Sources & APIs</text>
+    <text class="small" x="18" y="52">Adzuna, CareerJet, Indeed (APIs)</text>
+    <text class="small" x="18" y="72">Company Career Pages (scrapers)</text>
+    <text class="small" x="18" y="92">Google AdSense / YouTube (ads)</text>
+    <text class="small" x="18" y="112">LinkedIn / Google CSE (targeted search)</text>
+    <text class="small" x="18" y="132">Affiliate Partners</text>
+  </g>
+
+  <!-- Arrows: frontend -> backend -->
+  <path class="arrow" d="M400 110 L420 110" />
+  <path class="arrow" d="M760 120 L820 120" />
+  <path class="arrow" d="M760 200 L820 200" />
+
+  <!-- arrows backend -> external -->
+  <path class="arrow" d="M780 160 L820 160" />
+  <path class="arrow" d="M780 210 L820 210" />
+
+  <!-- arrows backend -> data layer -->
+  <path class="arrow" d="M600 250 L600 320" />
+
+  <!-- user/browser icon -->
+  <g transform="translate(130,210)">
+    <circle cx="0" cy="0" r="32" fill="#fff8dc" stroke="#2b6cb0" stroke-width="2" />
+    <text class="small" x="-18" y="6">User</text>
+    <text class="small" x="-18" y="22">Browser</text>
+    <path class="arrow" d="M180 -10 L130 -10" />
+  </g>
+
+  <!-- security / infra -->
+  <g transform="translate(50,520)">
+    <rect class="box" x="0" y="0" width="740" height="100" />
+    <text class="title" x="18" y="28">Infrastructure & Security</text>
+    <text class="small" x="18" y="52">HTTPS (Let\'s Encrypt), Env secrets, Rate limiting</text>
+    <text class="small" x="18" y="72">WAF, IP allowlist for admin, monitoring (Prometheus / Sentry)</text>
+  </g>
+
+  <!-- hosting -->
+  <g transform="translate(820,300)">
+    <rect class="box" x="0" y="0" width="320" height="100" />
+    <text class="title" x="18" y="28">Hosting</text>
+    <text class="small" x="18" y="52">Frontend: Vercel / Netlify</text>
+    <text class="small" x="18" y="72">Backend: Render / Railway</text>
+  </g>
+
+  <!-- footer -->
+  <text class="small" x="18" y="760">Diagram: FutureLinked ZA architecture — components, flow, and deployment options (simplified)</text>
+</svg>

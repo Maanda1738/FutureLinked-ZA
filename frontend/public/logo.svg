@@ -1,0 +1,61 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="95" fill="#667eea"/>
+  
+  <!-- Outer ring gradient -->
+  <defs>
+    <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="linkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e0e7ff;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Connected links forming "FL" -->
+  <g transform="translate(100, 100)">
+    <!-- First link chain (F) -->
+    <path d="M -35,-40 L -35,-10 M -35,-25 L -15,-25" 
+          stroke="white" 
+          stroke-width="8" 
+          stroke-linecap="round" 
+          fill="none"/>
+    <circle cx="-35" cy="-40" r="6" fill="white"/>
+    <circle cx="-35" cy="-10" r="6" fill="white"/>
+    <circle cx="-15" cy="-25" r="6" fill="white"/>
+    
+    <!-- Link connection -->
+    <path d="M -10,-15 L 10,-15" 
+          stroke="white" 
+          stroke-width="6" 
+          stroke-linecap="round" 
+          stroke-dasharray="2,4"
+          fill="none"
+          opacity="0.7"/>
+    
+    <!-- Second link chain (L) -->
+    <path d="M 15,-40 L 15,10 L 35,10" 
+          stroke="white" 
+          stroke-width="8" 
+          stroke-linecap="round" 
+          fill="none"/>
+    <circle cx="15" cy="-40" r="6" fill="white"/>
+    <circle cx="15" cy="10" r="6" fill="white"/>
+    <circle cx="35" cy="10" r="6" fill="white"/>
+    
+    <!-- Search magnifying glass icon -->
+    <g transform="translate(0, 40)">
+      <circle cx="0" cy="0" r="12" stroke="#fbbf24" stroke-width="4" fill="none"/>
+      <line x1="8" y1="8" x2="18" y2="18" stroke="#fbbf24" stroke-width="4" stroke-linecap="round"/>
+    </g>
+  </g>
+  
+  <!-- South African flag colors accent (bottom) -->
+  <g transform="translate(100, 165)">
+    <rect x="-25" y="0" width="12" height="6" fill="#007A4D" rx="1"/>
+    <rect x="-10" y="0" width="12" height="6" fill="#FFB612" rx="1"/>
+    <rect x="5" y="0" width="12" height="6" fill="#DE3831" rx="1"/>
+  </g>
+</svg>

@@ -1,0 +1,20 @@
+<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad16" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="8" cy="8" r="7.5" fill="url(#grad16)"/>
+  
+  <!-- Ultra-simplified FL -->
+  <g transform="translate(8, 8)" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round">
+    <path d="M -4,-3 L -4,1 M -4,-1 L -1.5,-1"/>
+    <path d="M 0.5,-3 L 0.5,1 L 3,1"/>
+  </g>
+  
+  <!-- Tiny search dot -->
+  <circle cx="8" cy="11.5" r="1" fill="#fbbf24"/>
+</svg>

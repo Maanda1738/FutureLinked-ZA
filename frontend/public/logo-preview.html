@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FutureLinked ZA - Logo & Favicon Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 3rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            font-size: 1.2rem;
+            margin-bottom: 60px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card h2 {
+            font-size: 1.2rem;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .card p {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            min-height: 180px;
+        }
+        
+        .logo-container.dark {
+            background: #1f2937;
+        }
+        
+        .logo-container img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .size-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .horizontal-card {
+            grid-column: 1 / -1;
+        }
+        
+        .horizontal-card .logo-container {
+            min-height: 120px;
+        }
+        
+        .color-palette {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .color-box {
+            text-align: center;
+        }
+        
+        .color-swatch {
+            width: 100%;
+            height: 80px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .color-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .color-code {
+            font-size: 0.75rem;
+            color: #666;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .info-section {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-top: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .info-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+        
+        .info-section ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .info-section li {
+            padding: 10px 0;
+            border-bottom: 1px solid #e5e7eb;
+            color: #333;
+        }
+        
+        .info-section li:last-child {
+            border-bottom: none;
+        }
+        
+        .info-section li strong {
+            color: #667eea;
+            display: inline-block;
+            min-width: 120px;
+        }
+        
+        footer {
+            text-align: center;
+            color: white;
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        footer p {
+            margin: 5px 0;
+        }
+        
+        .flag {
+            display: inline-flex;
+            gap: 2px;
+            margin-left: 10px;
+        }
+        
+        .flag span {
+            display: inline-block;
+            width: 12px;
+            height: 8px;
+            border-radius: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FutureLinked ZA</h1>
+        <p class="subtitle">Logo & Favicon Asset Preview</p>
+        
+        <!-- Main Logos -->
+        <div class="grid">
+            <div class="card">
+                <h2>Square Logo</h2>
+                <p>Main logo for app icons and social media</p>
+                <div class="logo-container">
+                    <img src="/logo.svg" alt="FutureLinked ZA Square Logo">
+                </div>
+                <span class="size-badge">200x200 SVG</span>
+            </div>
+            
+            <div class="card">
+                <h2>Square Logo (Dark BG)</h2>
+                <p>Logo on dark background preview</p>
+                <div class="logo-container dark">
+                    <img src="/logo.svg" alt="FutureLinked ZA Square Logo on Dark">
+                </div>
+                <span class="size-badge">200x200 SVG</span>
+            </div>
+        </div>
+        
+        <div class="grid horizontal-card">
+            <div class="card">
+                <h2>Horizontal Logo</h2>
+                <p>Full branding for headers, email signatures, and presentations</p>
+                <div class="logo-container">
+                    <img src="/logo-horizontal.svg" alt="FutureLinked ZA Horizontal Logo" style="max-height: 80px;">
+                </div>
+                <span class="size-badge">400x100 SVG</span>
+            </div>
+        </div>
+        
+        <!-- Favicons -->
+        <h1 style="margin-top: 60px;">Favicon Suite</h1>
+        <p class="subtitle">Multi-size icons for all devices and platforms</p>
+        
+        <div class="grid">
+            <div class="card">
+                <h2>16x16 Favicon</h2>
+                <p>Extra small - browser tabs</p>
+                <div class="logo-container">
+                    <img src="/favicon-16x16.svg" alt="16x16 Favicon" style="width: 64px; height: 64px; image-rendering: pixelated;">
+                </div>
+                <span class="size-badge">16x16 SVG</span>
+            </div>
+            
+            <div class="card">
+                <h2>32x32 Favicon</h2>
+                <p>Standard size - browser tabs</p>
+                <div class="logo-container">
+                    <img src="/favicon-32x32.svg" alt="32x32 Favicon" style="width: 96px; height: 96px;">
+                </div>
+                <span class="size-badge">32x32 SVG</span>
+            </div>
+            
+            <div class="card">
+                <h2>192x192 Icon</h2>
+                <p>Android home screen</p>
+                <div class="logo-container">
+                    <img src="/favicon-192x192.svg" alt="192x192 Icon" style="max-width: 150px;">
+                </div>
+                <span class="size-badge">192x192 SVG</span>
+            </div>
+            
+            <div class="card">
+                <h2>512x512 Icon</h2>
+                <p>High-res PWA icon</p>
+                <div class="logo-container">
+                    <img src="/favicon-512x512.svg" alt="512x512 Icon" style="max-width: 200px;">
+                </div>
+                <span class="size-badge">512x512 SVG</span>
+            </div>
+            
+            <div class="card">
+                <h2>Apple Touch Icon</h2>
+                <p>iOS home screen icon</p>
+                <div class="logo-container">
+                    <img src="/apple-touch-icon.svg" alt="Apple Touch Icon" style="max-width: 180px;">
+                </div>
+                <span class="size-badge">180x180 SVG</span>
+            </div>
+            
+            <div class="card">
+                <h2>Fallback Favicon</h2>
+                <p>Simple version for legacy browsers</p>
+                <div class="logo-container">
+                    <img src="/favicon.svg" alt="Fallback Favicon" style="width: 96px; height: 96px;">
+                </div>
+                <span class="size-badge">32x32 SVG</span>
+            </div>
+        </div>
+        
+        <!-- Color Palette -->
+        <div class="info-section">
+            <h2>Brand Color Palette</h2>
+            <div class="color-palette">
+                <div class="color-box">
+                    <div class="color-swatch" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+                    <div class="color-label">Primary Gradient</div>
+                    <div class="color-code">#667eea → #764ba2</div>
+                </div>
+                <div class="color-box">
+                    <div class="color-swatch" style="background: #fbbf24;"></div>
+                    <div class="color-label">Accent Gold</div>
+                    <div class="color-code">#fbbf24</div>
+                </div>
+                <div class="color-box">
+                    <div class="color-swatch" style="background: #007A4D;"></div>
+                    <div class="color-label">SA Green</div>
+                    <div class="color-code">#007A4D</div>
+                </div>
+                <div class="color-box">
+                    <div class="color-swatch" style="background: #FFB612;"></div>
+                    <div class="color-label">SA Yellow</div>
+                    <div class="color-code">#FFB612</div>
+                </div>
+                <div class="color-box">
+                    <div class="color-swatch" style="background: #DE3831;"></div>
+                    <div class="color-label">SA Red</div>
+                    <div class="color-code">#DE3831</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Design Info -->
+        <div class="info-section">
+            <h2>Design System</h2>
+            <ul>
+                <li><strong>Chain Links:</strong> Symbolize connection between job seekers and opportunities</li>
+                <li><strong>Circular Nodes:</strong> Represent interconnection points in the network</li>
+                <li><strong>Magnifying Glass:</strong> Universal search icon in accent gold</li>
+                <li><strong>SA Flag Colors:</strong> Emphasize South African market focus</li>
+                <li><strong>Gradient Background:</strong> Modern, dynamic brand feel</li>
+                <li><strong>Typography:</strong> Segoe UI, Arial, sans-serif</li>
+            </ul>
+        </div>
+        
+        <!-- Technical Info -->
+        <div class="info-section">
+            <h2>Technical Implementation</h2>
+            <ul>
+                <li><strong>Format:</strong> SVG (Scalable Vector Graphics)</li>
+                <li><strong>Advantages:</strong> Infinite scalability, small file size, crisp at any resolution</li>
+                <li><strong>Browser Support:</strong> Chrome 80+, Firefox 41+, Safari 9+, Edge 79+</li>
+                <li><strong>PWA Ready:</strong> Includes manifest.json for Progressive Web App support</li>
+                <li><strong>Mobile Optimized:</strong> Apple touch icon and Android home screen icons</li>
+                <li><strong>SEO Friendly:</strong> Proper Open Graph and meta tag integration</li>
+            </ul>
+        </div>
+        
+        <footer>
+            <p><strong>Created & Developed by Maanda Netshisumbewa</strong></p>
+            <p>FutureLinked ZA • Smart Job Search for South Africa</p>
+            <p>
+                📧 futurelinked3@gmail.com • 📱 071 568 9064
+                <span class="flag">
+                    <span style="background: #007A4D;"></span>
+                    <span style="background: #FFB612;"></span>
+                    <span style="background: #DE3831;"></span>
+                </span>
+            </p>
+            <p style="margin-top: 20px; font-size: 0.9rem; opacity: 0.8;">
+                Proudly South African 🇿🇦
+            </p>
+        </footer>
+    </div>
+</body>
+</html>

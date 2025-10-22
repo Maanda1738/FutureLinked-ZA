@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:3001
+      - NEXT_PUBLIC_GOOGLE_ADSENSE_ID=${GOOGLE_ADSENSE_ID}
+    depends_on:
+      - backend
+    networks:
+      - futurelinked-network
+
+  backend:
+    build: ./backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - FRONTEND_URL=http://frontend:3000
+      - ADZUNA_APP_ID=${ADZUNA_APP_ID}
+      - ADZUNA_API_KEY=${ADZUNA_API_KEY}
+      - GOOGLE_ADSENSE_ID=${GOOGLE_ADSENSE_ID}
+    networks:
+      - futurelinked-network
+    volumes:
+      - ./backend/logs:/app/logs
+
+  # Optional: Redis for caching (instead of in-memory)
+  # redis:
+  #   image: redis:7-alpine
+  #   ports:
+  #     - "6379:6379"
+  #   networks:
+  #     - futurelinked-network
+
+networks:
+  futurelinked-network:
+    driver: bridge
+
+volumes:
+  backend-logs:

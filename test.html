@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FutureLinked ZA - API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .job-result { background: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; margin: 5px 0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🚀 FutureLinked ZA API Test</h1>
+    <p>This page tests the FutureLinked ZA backend API functionality.</p>
+    
+    <div id="results"></div>
+    
+    <button onclick="testAPI()">🧪 Test API</button>
+    <button onclick="testSearch()">🔍 Test Search</button>
+    
+    <script>
+        const API_BASE = 'http://localhost:3001';
+        
+        function addResult(message, isSuccess = true) {
+            const resultsDiv = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test-result ${isSuccess ? 'success' : 'error'}`;
+            div.innerHTML = message;
+            resultsDiv.appendChild(div);
+        }
+        
+        async function testAPI() {
+            document.getElementById('results').innerHTML = '';
+            addResult('🧪 Testing FutureLinked ZA API...');
+            
+            try {
+                // Test health endpoint
+                const healthResponse = await fetch(`${API_BASE}/api/health`);
+                const healthData = await healthResponse.json();
+                addResult(`✅ Health check: ${healthData.status} (Uptime: ${healthData.uptime})`);
+                
+                // Test root endpoint
+                const rootResponse = await fetch(`${API_BASE}/`);
+                const rootData = await rootResponse.json();
+                addResult(`✅ Root endpoint: ${rootData.message}`);
+                
+                addResult('🎉 All basic API tests passed!');
+                
+            } catch (error) {
+                addResult(`❌ API test failed: ${error.message}`, false);
+            }
+        }
+        
+        async function testSearch() {
+            document.getElementById('results').innerHTML = '';
+            addResult('🔍 Testing search functionality...');
+            
+            try {
+                const searchResponse = await fetch(`${API_BASE}/api/search?q=IT internship`);
+                const searchData = await searchResponse.json();
+                
+                if (searchData.success) {
+                    addResult(`✅ Search successful: Found ${searchData.results.length} results from sources: ${searchData.sources.join(', ')}`);
+                    
+                    // Show first 3 results
+                    if (searchData.results.length > 0) {
+                        addResult('📋 Sample results:');
+                        searchData.results.slice(0, 3).forEach((job, index) => {
+                            const jobDiv = document.createElement('div');
+                            jobDiv.className = 'job-result';
+                            jobDiv.innerHTML = `
+                                <strong>${job.title}</strong><br>
+                                Company: ${job.company}<br>
+                                Location: ${job.location}<br>
+                                Type: ${job.type}<br>
+                                Source: ${job.source}
+                            `;
+                            document.getElementById('results').appendChild(jobDiv);
+                        });
+                    }
+                } else {
+                    addResult(`❌ Search failed: ${searchData.error}`, false);
+                }
+                
+            } catch (error) {
+                addResult(`❌ Search test failed: ${error.message}`, false);
+            }
+        }
+        
+        // Auto-run tests on page load
+        window.onload = function() {
+            setTimeout(testAPI, 1000);
+        };
+    </script>
+</body>
+</html>

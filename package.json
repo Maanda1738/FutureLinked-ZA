@@ -1,0 +1,42 @@
+{
+  "name": "futurelinked-za",
+  "version": "1.0.0",
+  "description": "FutureLinked ZA - Search your future. Linked instantly.",
+  "main": "index.js",
+  "scripts": {
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:frontend": "cd frontend && npm start",
+    "start:backend": "cd backend && npm start",
+    "test": "cd backend && npm test && cd ../frontend && npm test",
+    "lint": "cd frontend && npm run lint",
+    "clean": "rimraf frontend/.next frontend/out backend/logs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/futurelinked-za.git"
+  },
+  "keywords": [
+    "jobs",
+    "internships",
+    "south-africa",
+    "search",
+    "careers",
+    "bursaries",
+    "graduate-programs"
+  ],
+  "author": "Maanda",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yourusername/futurelinked-za/issues"
+  },
+  "homepage": "https://github.com/yourusername/futurelinked-za#readme",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "rimraf": "^5.0.5"
+  }
+}

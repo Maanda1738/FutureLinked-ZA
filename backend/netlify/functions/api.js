@@ -26,9 +26,22 @@ app.use(limiter);
 
 app.use(express.json());
 
-// Routes - no /api prefix needed since function is already at /.netlify/functions/api
+// Routes - handle both with and without leading slash
 app.use('/search', searchRoute);
 app.use('/health', healthRoute);
+app.use('/:path(search)', searchRoute);
+app.use('/:path(health)', healthRoute);
+
+// Root handler for testing
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'FutureLinked ZA API',
+    endpoints: {
+      health: '/.netlify/functions/api/health',
+      search: '/.netlify/functions/api/search'
+    }
+  });
+});
 
 // Error handling
 app.use((err, req, res, next) => {

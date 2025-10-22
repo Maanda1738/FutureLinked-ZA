@@ -94,6 +94,35 @@ export default function Home() {
             crossOrigin="anonymous"
           />
         )}
+        
+        {/* Structured Data for SEO */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "FutureLinked ZA",
+              "description": "South Africa's premier job search platform for jobs, internships, bursaries, and graduate programs",
+              "url": "https://futurelinked-za.co.za",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://futurelinked-za.co.za/?search={search_term_string}",
+                "query-input": "required name=search_term_string"
+              },
+              "publisher": {
+                "@type": "Organization",
+                "name": "FutureLinked ZA",
+                "logo": {
+                  "@type": "ImageObject",
+                  "url": "https://futurelinked-za.co.za/logo.svg"
+                }
+              },
+              "inLanguage": "en-ZA",
+              "areaServed": "ZA"
+            })
+          }}
+        />
       </Head>
 
       <div className="min-h-screen flex flex-col">

@@ -1,0 +1,20 @@
+# robots.txt for FutureLinked ZA
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://futurelinked-za.co.za/sitemap.xml
+
+# Disallow admin/config paths (if any in future)
+Disallow: /api/
+Disallow: /.netlify/
+
+# Allow all search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Crawl delay (be nice to servers)
+Crawl-delay: 1

@@ -114,11 +114,13 @@ export default function Resources() {
               <h2 className="text-3xl font-bold text-gray-800 mb-6">Featured Career Tips</h2>
               
               <div className="space-y-6">
-                <Article
-                  title="How to Write a Winning CV for South African Employers"
-                  excerpt="Your CV is your first impression. Learn the essential components that make South African recruiters take notice, from proper formatting to highlighting your achievements effectively."
-                  readTime="5 min read"
-                />
+                <Link href="/articles/cv-writing-guide">
+                  <Article
+                    title="How to Write a Winning CV for South African Employers"
+                    excerpt="Your CV is your first impression. Learn the essential components that make South African recruiters take notice, from proper formatting to highlighting your achievements effectively."
+                    readTime="5 min read"
+                  />
+                </Link>
 
                 <Article
                   title="Mastering Virtual Interviews in 2025"
@@ -257,15 +259,15 @@ function ResourceCard({ icon, title, description, color, articles }) {
 
 function Article({ title, excerpt, readTime }) {
   return (
-    <div className="border-l-4 border-primary-500 pl-4 py-2 hover:bg-gray-50 transition-colors">
+    <div className="border-l-4 border-primary-500 pl-4 py-2 hover:bg-gray-50 transition-colors cursor-pointer">
       <div className="flex items-start justify-between">
         <h3 className="text-xl font-semibold text-gray-800 mb-2">{title}</h3>
         <span className="text-xs text-gray-500 whitespace-nowrap ml-4">{readTime}</span>
       </div>
       <p className="text-gray-600">{excerpt}</p>
-      <button className="text-primary-600 hover:text-primary-700 font-medium text-sm mt-2">
+      <span className="text-primary-600 hover:text-primary-700 font-medium text-sm mt-2 inline-block">
         Read More →
-      </button>
+      </span>
     </div>
   );
 }

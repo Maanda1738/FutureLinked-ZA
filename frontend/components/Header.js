@@ -40,6 +40,9 @@ export default function Header() {
                 </span>
               )}
             </Link>
+            <Link href="/resources" className="text-gray-600 hover:text-primary-600 transition-colors">
+              Career Tips
+            </Link>
             <Link href="/about" className="text-gray-600 hover:text-primary-600 transition-colors">
               About
             </Link>

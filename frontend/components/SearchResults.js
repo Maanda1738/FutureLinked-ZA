@@ -209,8 +209,50 @@ function JobCard({ job }) {
   const relativeTime = getRelativeTime(job.posted);
   const opportunityType = detectOpportunityType(job);
 
+  // Generate JobPosting schema for SEO
+  const jobSchema = {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    "title": job.title,
+    "description": job.description || job.title,
+    "datePosted": job.posted || new Date().toISOString(),
+    "hiringOrganization": {
+      "@type": "Organization",
+      "name": job.company || "Employer",
+      "sameAs": job.url
+    },
+    "jobLocation": {
+      "@type": "Place",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": job.location || "South Africa",
+        "addressCountry": "ZA"
+      }
+    },
+    "baseSalary": job.salary ? {
+      "@type": "MonetaryAmount",
+      "currency": "ZAR",
+      "value": {
+        "@type": "QuantitativeValue",
+        "value": job.salary,
+        "unitText": "YEAR"
+      }
+    } : undefined,
+    "employmentType": opportunityType === 'internship' ? 'INTERN' : 
+                      opportunityType === 'graduate' ? 'FULL_TIME' : 'FULL_TIME',
+    "validThrough": new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days validity
+    "url": job.url
+  };
+
   return (
-    <div className="job-card bg-white p-6 rounded-lg hover:shadow-lg relative border-l-4 border-transparent hover:border-primary-500 transition-all">
+    <>
+      {/* Structured Data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jobSchema) }}
+      />
+
+      <div className="job-card bg-white p-6 rounded-lg hover:shadow-lg relative border-l-4 border-transparent hover:border-primary-500 transition-all">
       {/* ✅ Fresh Job Badge */}
       {isNewJob && (
         <div className="absolute top-4 right-4">
@@ -253,8 +295,20 @@ function JobCard({ job }) {
             {job.posted && (
               <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
-                <span className={relativeTime ? 'font-medium text-green-600' : ''}>
-                  {relativeTime || formatDate(job.posted)}
+                <span className={`font-semibold ${relativeTime ? 'text-green-600' : 'text-gray-600'}`}>
+                  {relativeTime ? (
+                    <>
+                      <span className="inline-flex items-center gap-1">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                        </span>
+                        {relativeTime}
+                      </span>
+                    </>
+                  ) : (
+                    formatDate(job.posted)
+                  )}
                 </span>
               </div>
             )}
@@ -330,5 +384,6 @@ function JobCard({ job }) {
         </div>
       </div>
     </div>
+    </>
   );
 }

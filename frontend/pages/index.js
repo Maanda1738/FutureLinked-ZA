@@ -3,6 +3,7 @@ import Head from 'next/head';
 import SearchBar from '../components/SearchBar';
 import SearchResults from '../components/SearchResults';
 import FilterSort from '../components/FilterSort';
+import Breadcrumbs from '../components/Breadcrumbs';
 import EnhancedAdBanner from '../components/EnhancedAdBanner';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -259,6 +260,14 @@ export default function Home() {
           {/* Results Section */}
           {hasSearched && (
             <div className="container mx-auto px-4 py-8">
+              {/* Breadcrumbs */}
+              <Breadcrumbs 
+                items={[
+                  { label: 'Search Results', href: null },
+                  { label: searchQuery, href: null }
+                ]}
+              />
+
               {/* Top Ad Banner */}
               <EnhancedAdBanner 
                 type="banner" 

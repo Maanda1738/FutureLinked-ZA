@@ -218,35 +218,35 @@ export default function Home() {
                 {/* Quick Search Buttons for Students */}
                 {!hasSearched && (
                   <div className="mt-8">
-                    <p className="text-sm text-blue-200 mb-3 font-semibold">🎓 Popular Student Searches:</p>
-                    <div className="flex flex-wrap justify-center gap-3">
+                    <p className="text-sm text-blue-200 mb-3 font-semibold text-center">🎓 Popular Student Searches:</p>
+                    <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
                       <button
                         onClick={() => handleSearch('bursary', '')}
-                        className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full text-sm font-medium transition-all border border-white border-opacity-30 backdrop-blur-sm"
+                        className="px-3 sm:px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full text-xs sm:text-sm font-medium transition-all border border-white border-opacity-30 backdrop-blur-sm"
                       >
                         💰 Bursaries
                       </button>
                       <button
                         onClick={() => handleSearch('scholarship', '')}
-                        className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full text-sm font-medium transition-all border border-white border-opacity-30 backdrop-blur-sm"
+                        className="px-3 sm:px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full text-xs sm:text-sm font-medium transition-all border border-white border-opacity-30 backdrop-blur-sm"
                       >
                         🎯 Scholarships
                       </button>
                       <button
                         onClick={() => handleSearch('internship', '')}
-                        className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full text-sm font-medium transition-all border border-white border-opacity-30 backdrop-blur-sm"
+                        className="px-3 sm:px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full text-xs sm:text-sm font-medium transition-all border border-white border-opacity-30 backdrop-blur-sm"
                       >
                         💼 Internships
                       </button>
                       <button
                         onClick={() => handleSearch('graduate program', '')}
-                        className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full text-sm font-medium transition-all border border-white border-opacity-30 backdrop-blur-sm"
+                        className="px-3 sm:px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full text-xs sm:text-sm font-medium transition-all border border-white border-opacity-30 backdrop-blur-sm"
                       >
                         🎓 Graduate Programs
                       </button>
                       <button
                         onClick={() => handleSearch('learnership', '')}
-                        className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full text-sm font-medium transition-all border border-white border-opacity-30 backdrop-blur-sm"
+                        className="px-3 sm:px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full text-xs sm:text-sm font-medium transition-all border border-white border-opacity-30 backdrop-blur-sm"
                       >
                         📚 Learnerships
                       </button>

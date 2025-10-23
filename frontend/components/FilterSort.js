@@ -37,11 +37,11 @@ export default function FilterSort({ onFilterChange, onSortChange, resultsCount 
 
   return (
     <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         {/* Filter Toggle Button */}
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors justify-center sm:justify-start ${
             hasActiveFilters 
               ? 'bg-primary-600 text-white' 
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -54,17 +54,17 @@ export default function FilterSort({ onFilterChange, onSortChange, resultsCount 
         </button>
 
         {/* Results Count */}
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-gray-600 text-center sm:text-left">
           Showing <span className="font-semibold">{resultsCount}</span> opportunities
         </div>
 
         {/* Sort Dropdown */}
-        <div className="flex items-center gap-2">
-          <SortAsc className="h-4 w-4 text-gray-600" />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <SortAsc className="h-4 w-4 text-gray-600 flex-shrink-0" />
           <select
             value={sortBy}
             onChange={(e) => handleSortChange(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+            className="flex-1 sm:flex-initial px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
           >
             <option value="date">Most Recent</option>
             <option value="salary">Highest Salary</option>

@@ -333,8 +333,8 @@ function JobCard({ job }) {
         </div>
       )}
 
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
           {job.salary && (
             <span className="text-sm font-medium text-green-600">
               {job.salary}
@@ -347,11 +347,11 @@ function JobCard({ job }) {
           )}
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Save Button */}
           <button
             onClick={handleSaveToggle}
-            className={`inline-flex items-center gap-1 px-4 py-2 rounded-md font-medium transition-all ${
+            className={`inline-flex items-center gap-1 px-4 py-2 rounded-md font-medium transition-all flex-1 sm:flex-initial justify-center ${
               saved 
                 ? 'bg-red-100 text-red-600 hover:bg-red-200' 
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -361,12 +361,12 @@ function JobCard({ job }) {
             {saved ? (
               <>
                 <Heart className="h-4 w-4 fill-current" />
-                Saved
+                <span className="sm:inline">Saved</span>
               </>
             ) : (
               <>
                 <Star className="h-4 w-4" />
-                Save
+                <span className="sm:inline">Save</span>
               </>
             )}
           </button>
@@ -376,7 +376,7 @@ function JobCard({ job }) {
             href={job.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors font-medium"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors font-medium flex-1 sm:flex-initial justify-center"
           >
             Apply Now
             <ExternalLink className="h-4 w-4" />

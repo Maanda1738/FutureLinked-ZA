@@ -239,39 +239,132 @@ export default function Home() {
 
           {/* Features Section (when no search) */}
           {!hasSearched && (
-            <div className="py-16 bg-white">
-              <div className="container mx-auto px-4">
-                <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">
-                  Why Choose FutureLinked ZA?
-                </h2>
-                
-                <div className="grid md:grid-cols-3 gap-8">
-                  <div className="text-center p-6">
-                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="text-3xl">🎓</span>
-                    </div>
-                    <h3 className="text-xl font-semibold mb-2">Student-Friendly</h3>
-                    <p className="text-gray-600">Find bursaries, scholarships, internships, and graduate programs easily with dedicated search filters.</p>
-                  </div>
+            <>
+              <div className="py-16 bg-white">
+                <div className="container mx-auto px-4">
+                  <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">
+                    Why Choose FutureLinked ZA?
+                  </h2>
                   
-                  <div className="text-center p-6">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="text-3xl">✅</span>
+                  <div className="grid md:grid-cols-3 gap-8">
+                    <div className="text-center p-6">
+                      <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-3xl">🎓</span>
+                      </div>
+                      <h3 className="text-xl font-semibold mb-2">Student-Friendly</h3>
+                      <p className="text-gray-600">Find bursaries, scholarships, internships, and graduate programs easily with dedicated search filters.</p>
                     </div>
-                    <h3 className="text-xl font-semibold mb-2">Fresh Opportunities</h3>
-                    <p className="text-gray-600">Only opportunities posted within the last 7 days - no old or expired listings.</p>
-                  </div>
-                  
-                  <div className="text-center p-6">
-                    <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="text-3xl">💯</span>
+                    
+                    <div className="text-center p-6">
+                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-3xl">✅</span>
+                      </div>
+                      <h3 className="text-xl font-semibold mb-2">Fresh Opportunities</h3>
+                      <p className="text-gray-600">Only opportunities posted within the last 7 days - no old or expired listings.</p>
                     </div>
-                    <h3 className="text-xl font-semibold mb-2">100% Free</h3>
-                    <p className="text-gray-600">No registration required, no hidden fees. Search and apply for free, always.</p>
+                    
+                    <div className="text-center p-6">
+                      <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-3xl">💯</span>
+                      </div>
+                      <h3 className="text-xl font-semibold mb-2">100% Free</h3>
+                      <p className="text-gray-600">No registration required, no hidden fees. Search and apply for free, always.</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+
+              {/* Additional Content Section */}
+              <div className="py-16 bg-gradient-to-br from-blue-50 to-purple-50">
+                <div className="container mx-auto px-4">
+                  <div className="max-w-4xl mx-auto">
+                    <h2 className="text-3xl font-bold text-center mb-8 text-gray-800">
+                      Your Gateway to Career Success in South Africa
+                    </h2>
+                    
+                    <div className="prose prose-lg mx-auto text-gray-700 space-y-6">
+                      <p>
+                        FutureLinked ZA is South Africa's most comprehensive job search platform, specifically designed to help 
+                        students, graduates, and job seekers find their dream opportunities. Whether you're looking for your 
+                        first internship, searching for bursaries to fund your education, or seeking the next step in your 
+                        career, we've got you covered.
+                      </p>
+                      
+                      <div className="grid md:grid-cols-2 gap-6 my-8">
+                        <div className="bg-white p-6 rounded-lg shadow-md">
+                          <h3 className="text-xl font-semibold mb-3 text-primary-600">For Students & Graduates</h3>
+                          <ul className="space-y-2 text-sm">
+                            <li>✓ Bursary and scholarship opportunities</li>
+                            <li>✓ Graduate programs from top companies</li>
+                            <li>✓ Internship positions across all industries</li>
+                            <li>✓ Learnership programs for skills development</li>
+                            <li>✓ Entry-level job opportunities</li>
+                          </ul>
+                        </div>
+                        
+                        <div className="bg-white p-6 rounded-lg shadow-md">
+                          <h3 className="text-xl font-semibold mb-3 text-primary-600">For Experienced Professionals</h3>
+                          <ul className="space-y-2 text-sm">
+                            <li>✓ Mid to senior-level positions</li>
+                            <li>✓ Management and leadership roles</li>
+                            <li>✓ Specialized technical positions</li>
+                            <li>✓ Remote and flexible work opportunities</li>
+                            <li>✓ Career advancement opportunities</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <h3 className="text-2xl font-semibold mt-8 mb-4">How FutureLinked ZA Works</h3>
+                      <p>
+                        Our intelligent job search platform aggregates opportunities from verified sources including the Adzuna 
+                        API and trusted South African job boards. We filter out outdated listings and only show you opportunities 
+                        posted within the last 7 days, ensuring you never waste time on expired positions.
+                      </p>
+                      
+                      <p>
+                        Simply enter your search query and location, and our smart algorithm will instantly find relevant 
+                        opportunities matching your criteria. No registration required, no hidden fees – just straightforward 
+                        job searching that works.
+                      </p>
+
+                      <h3 className="text-2xl font-semibold mt-8 mb-4">Popular Search Categories</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 my-6">
+                        <div className="bg-white p-4 rounded-lg text-center">
+                          <span className="text-2xl mb-2 block">💼</span>
+                          <p className="font-medium">IT & Technology</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg text-center">
+                          <span className="text-2xl mb-2 block">📊</span>
+                          <p className="font-medium">Finance & Accounting</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg text-center">
+                          <span className="text-2xl mb-2 block">🏗️</span>
+                          <p className="font-medium">Engineering</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg text-center">
+                          <span className="text-2xl mb-2 block">📈</span>
+                          <p className="font-medium">Marketing & Sales</p>
+                        </div>
+                      </div>
+
+                      <h3 className="text-2xl font-semibold mt-8 mb-4">Why Job Seekers Trust Us</h3>
+                      <p>
+                        Since our launch, we've helped thousands of South Africans find meaningful employment and educational 
+                        opportunities. Our commitment to quality means every listing is fresh, relevant, and leads directly to 
+                        legitimate opportunities. We don't clutter your search with outdated posts or spam – just real jobs 
+                        from real employers.
+                      </p>
+                      
+                      <div className="bg-blue-100 p-6 rounded-lg my-6">
+                        <p className="text-center text-lg font-medium text-blue-800">
+                          🚀 Start your job search journey today – your future is waiting!
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </main>
 

@@ -282,17 +282,266 @@ function Article({ title, excerpt, readTime }) {
 
 function TemplateCard({ title, description, format }) {
   const handleDownload = () => {
-    // Create a simple text file as placeholder (you can replace with actual templates later)
-    const content = `${title}\n\n${description}\n\nThis is a placeholder template. Replace with actual ${format} template content.`;
-    const blob = new Blob([content], { type: 'text/plain' });
+    let content = '';
+    let filename = '';
+    let mimeType = 'text/plain';
+
+    // Generate different template content based on type
+    if (title.includes('CV')) {
+      filename = 'Professional_CV_Template.txt';
+      content = `PROFESSIONAL CV TEMPLATE
+========================================
+
+PERSONAL INFORMATION
+--------------------
+Full Name: [Your Full Name]
+Phone: [Your Phone Number]
+Email: [Your Professional Email]
+Location: [City, Province]
+LinkedIn: [Your LinkedIn Profile URL]
+
+
+PROFESSIONAL SUMMARY
+--------------------
+[Write 3-4 sentences highlighting your experience, key skills, and career goals. 
+Tailor this section for each job application.]
+
+Example:
+Results-driven marketing professional with 5+ years of experience in digital marketing 
+and brand management. Proven track record of increasing online engagement by 150% and 
+managing campaigns with R500k+ budgets. Seeking to leverage expertise in social media 
+strategy and content creation to drive growth at a forward-thinking organization.
+
+
+WORK EXPERIENCE
+---------------
+
+[Job Title] | [Company Name]
+[Month Year] - [Month Year] or Present
+• [Achievement-focused bullet point with quantified results]
+• [Action verb + specific task + measurable outcome]
+• [Another achievement demonstrating your impact]
+• [Additional responsibility or accomplishment]
+
+[Previous Job Title] | [Previous Company]
+[Month Year] - [Month Year]
+• [Achievement with metrics]
+• [Specific contribution to company goals]
+• [Project or initiative you led]
+
+
+EDUCATION
+---------
+
+[Degree/Diploma Name] | [Institution Name]
+Graduated: [Month Year]
+Achievements: [Any honors, distinctions, or relevant coursework]
+
+[Previous Qualification] | [Institution]
+Graduated: [Year]
+
+
+SKILLS
+------
+
+Technical Skills:
+• [Skill 1], [Skill 2], [Skill 3]
+• [Software/Tools you're proficient in]
+• [Industry-specific technical abilities]
+
+Soft Skills:
+• [Communication], [Leadership], [Problem-solving]
+• [Teamwork], [Time Management], [Adaptability]
+
+
+CERTIFICATIONS (Optional)
+------------------------
+• [Certification Name] - [Issuing Organization] ([Year])
+• [Another Certification] - [Organization] ([Year])
+
+
+LANGUAGES (Optional)
+-------------------
+• English - Fluent
+• [Other Language] - [Proficiency Level]
+
+
+REFERENCES
+----------
+Available upon request
+
+
+TIPS FOR USING THIS TEMPLATE:
+------------------------------
+✓ Keep your CV to 2 pages maximum (1 page for entry-level)
+✓ Use action verbs: Managed, Developed, Increased, Led, Implemented
+✓ Quantify achievements with numbers, percentages, or results
+✓ Tailor your CV for each job application
+✓ Proofread multiple times - NO typos!
+✓ Save as PDF before sending: [YourName]_CV_2025.pdf
+✓ Use a professional email address
+✓ Update regularly as you gain new experience
+
+Download from FutureLinked ZA - https://futurelinked-za.co.za
+`;
+    } else if (title.includes('Cover Letter')) {
+      filename = 'Cover_Letter_Template.txt';
+      content = `COVER LETTER TEMPLATE
+========================================
+
+[Your Full Name]
+[Your Phone Number]
+[Your Email Address]
+[Your City, Province]
+[Date: October 23, 2025]
+
+[Hiring Manager's Name]
+[Job Title]
+[Company Name]
+[Company Address]
+
+Dear [Hiring Manager's Name / Hiring Manager],
+
+OPENING PARAGRAPH:
+I am writing to express my strong interest in the [Job Title] position at [Company Name], 
+as advertised on [where you found the job - e.g., FutureLinked ZA]. With [X years] of 
+experience in [your field/industry] and a proven track record of [key achievement], 
+I am confident I would be a valuable addition to your team.
+
+BODY PARAGRAPH 1 - Your Qualifications:
+In my current/previous role as [Your Current/Last Job Title] at [Company], I [describe 
+your main responsibility and achievement]. Specifically, I [quantified achievement - e.g., 
+"increased sales by 30%", "managed a team of 10", "reduced costs by R50,000"]. This 
+experience has equipped me with [relevant skills] that directly align with the requirements 
+outlined in your job description.
+
+BODY PARAGRAPH 2 - Why This Company:
+I am particularly drawn to [Company Name] because [specific reason - mention company values, 
+projects, reputation, or culture]. I am impressed by [something specific about the company - 
+recent achievement, product, or initiative], and I am excited about the opportunity to 
+contribute to [specific goal or project mentioned in job description].
+
+BODY PARAGRAPH 3 - Additional Value (Optional):
+Beyond my professional experience, I bring [additional skills, certifications, or qualities]. 
+My ability to [specific skill] combined with my passion for [industry/field] makes me 
+well-suited to help [Company Name] achieve [specific goal].
+
+CLOSING PARAGRAPH:
+I would welcome the opportunity to discuss how my skills and experiences align with your 
+needs. I am available for an interview at your convenience and can be reached at [phone] 
+or [email]. Thank you for considering my application. I look forward to the possibility 
+of contributing to [Company Name]'s continued success.
+
+Sincerely,
+[Your Full Name]
+
+
+TIPS FOR CUSTOMIZING YOUR COVER LETTER:
+---------------------------------------
+✓ Always address the hiring manager by name if possible (research on LinkedIn)
+✓ Mention the specific job title and where you found the posting
+✓ Keep it to one page (3-4 paragraphs maximum)
+✓ Show enthusiasm for the role and company
+✓ Use specific examples and quantify achievements
+✓ Proofread carefully - typos are deal-breakers!
+✓ Match the tone to the company culture (formal vs. casual)
+✓ Save as PDF: [YourName]_CoverLetter_[CompanyName].pdf
+
+Download from FutureLinked ZA - https://futurelinked-za.co.za
+`;
+    } else if (title.includes('Motivation Letter')) {
+      filename = 'Bursary_Motivation_Letter_Template.txt';
+      content = `BURSARY MOTIVATION LETTER TEMPLATE
+========================================
+
+[Your Full Name]
+[Your Physical Address]
+[Your Phone Number]
+[Your Email Address]
+[Date: October 23, 2025]
+
+[Bursary Committee / Company Name]
+[Address]
+
+RE: APPLICATION FOR [BURSARY NAME] - [ACADEMIC YEAR]
+
+Dear Sir/Madam / [Specific Name if known],
+
+OPENING PARAGRAPH - Introduction:
+I am writing to apply for the [Bursary Name] offered by [Company/Organization]. I am 
+currently a [year of study] student at [University/College Name], pursuing a [Degree Name] 
+in [Field of Study]. I am passionate about [field/industry] and believe this bursary will 
+enable me to achieve my academic and career goals.
+
+PARAGRAPH 2 - Academic Performance:
+Throughout my academic journey, I have maintained a strong academic record, achieving 
+[mention your average, e.g., "an average of 75%"] in my [matric/first year/etc.]. My 
+dedication to my studies is demonstrated through [specific achievements - Dean's List, 
+top student in a subject, awards, etc.]. I am particularly interested in [specific area 
+of your field] and have excelled in modules such as [relevant subjects].
+
+PARAGRAPH 3 - Financial Need:
+I am applying for this bursary due to financial constraints that make it challenging to 
+fund my tertiary education. [Briefly explain your circumstances - single parent household, 
+unemployed parent, family responsibilities, etc.]. Despite these challenges, I remain 
+committed to my studies and am determined to succeed academically. This bursary would 
+significantly alleviate the financial burden and allow me to focus fully on my education.
+
+PARAGRAPH 4 - Career Goals & Alignment:
+Upon completing my degree, I aspire to [describe your career goals]. I am particularly 
+interested in working in [specific industry/sector], where I can [how you want to make 
+an impact]. I am drawn to [Company Name] because of [specific reason - company values, 
+industry leadership, innovation, etc.], and I would be honored to contribute to your 
+organization as a future employee.
+
+PARAGRAPH 5 - Personal Qualities & Extracurricular:
+Beyond academics, I have demonstrated leadership and commitment through [mention 
+extracurricular activities, volunteer work, part-time jobs, sports, community service]. 
+These experiences have taught me [skills like teamwork, time management, perseverance], 
+which I believe are essential for success both in university and in the workplace.
+
+CLOSING PARAGRAPH:
+I am confident that with the support of the [Bursary Name], I will not only complete my 
+studies successfully but also become a valuable asset to [Company/Organization Name]. 
+I am committed to maintaining high academic standards and fulfilling any obligations 
+associated with this bursary. Thank you for considering my application. I look forward 
+to the opportunity to contribute to your organization in the future.
+
+Yours sincerely,
+[Your Full Name]
+[Student Number - if applicable]
+
+
+TIPS FOR WRITING A WINNING BURSARY MOTIVATION LETTER:
+----------------------------------------------------
+✓ Research the company/organization offering the bursary
+✓ Be honest about your financial situation (don't exaggerate)
+✓ Highlight academic achievements with specific examples
+✓ Show genuine interest in the field and company
+✓ Keep it professional but let your personality shine through
+✓ Proofread multiple times - grammar matters!
+✓ Keep it to 1-2 pages maximum
+✓ Include any supporting documents: academic transcript, ID copy, proof of income
+✓ Submit before the deadline!
+✓ Follow up after 2 weeks if you haven't heard back
+
+Download from FutureLinked ZA - https://futurelinked-za.co.za
+`;
+    }
+
+    // Create blob and download
+    const blob = new Blob([content], { type: mimeType });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${title.replace(/\s+/g, '_')}.txt`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+
+    // Show success message
+    alert(`✅ ${filename} downloaded successfully!\n\nOpen the file to see your template.`);
   };
 
   return (

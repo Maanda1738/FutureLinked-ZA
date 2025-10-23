@@ -122,29 +122,37 @@ export default function Resources() {
                   />
                 </Link>
 
-                <Article
-                  title="Mastering Virtual Interviews in 2025"
-                  excerpt="With remote work becoming standard, virtual interviews are here to stay. Discover professional setup tips, body language tricks, and how to handle technical difficulties gracefully."
-                  readTime="4 min read"
-                />
+                <Link href="/articles/interview-guide">
+                  <Article
+                    title="Mastering Virtual Interviews in 2025"
+                    excerpt="With remote work becoming standard, virtual interviews are here to stay. Discover professional setup tips, body language tricks, and how to handle technical difficulties gracefully."
+                    readTime="4 min read"
+                  />
+                </Link>
 
-                <Article
-                  title="Top 10 Companies Hiring Graduates in South Africa"
-                  excerpt="Explore the leading companies actively recruiting graduates in 2025, including their graduate programs, application processes, and what they look for in candidates."
-                  readTime="6 min read"
-                />
+                <Link href="/resources">
+                  <Article
+                    title="Top 10 Companies Hiring Graduates in South Africa"
+                    excerpt="Explore the leading companies actively recruiting graduates in 2025, including their graduate programs, application processes, and what they look for in candidates."
+                    readTime="6 min read"
+                  />
+                </Link>
 
-                <Article
-                  title="Bursary Application Success: A Complete Guide"
-                  excerpt="Applying for bursaries can be competitive. This comprehensive guide covers how to find opportunities, write compelling motivation letters, and maximize your chances of success."
-                  readTime="8 min read"
-                />
+                <Link href="/resources">
+                  <Article
+                    title="Bursary Application Success: A Complete Guide"
+                    excerpt="Applying for bursaries can be competitive. This comprehensive guide covers how to find opportunities, write compelling motivation letters, and maximize your chances of success."
+                    readTime="8 min read"
+                  />
+                </Link>
 
-                <Article
-                  title="Negotiating Your First Salary: A South African Guide"
-                  excerpt="Don't leave money on the table! Learn when and how to negotiate your first job offer, including market research tips and scripts for salary discussions."
-                  readTime="5 min read"
-                />
+                <Link href="/articles/salary-negotiation">
+                  <Article
+                    title="Negotiating Your First Salary: A South African Guide"
+                    excerpt="Don't leave money on the table! Learn when and how to negotiate your first job offer, including market research tips and scripts for salary discussions."
+                    readTime="5 min read"
+                  />
+                </Link>
               </div>
             </div>
 
@@ -273,14 +281,31 @@ function Article({ title, excerpt, readTime }) {
 }
 
 function TemplateCard({ title, description, format }) {
+  const handleDownload = () => {
+    // Create a simple text file as placeholder (you can replace with actual templates later)
+    const content = `${title}\n\n${description}\n\nThis is a placeholder template. Replace with actual ${format} template content.`;
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${title.replace(/\s+/g, '_')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-primary-500 hover:bg-blue-50 transition-all text-center">
+    <button 
+      onClick={handleDownload}
+      className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-primary-500 hover:bg-blue-50 transition-all text-center w-full cursor-pointer"
+    >
       <div className="text-3xl mb-2">📄</div>
       <h4 className="font-semibold text-gray-800 mb-1">{title}</h4>
       <p className="text-sm text-gray-600 mb-3">{description}</p>
-      <span className="inline-block px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs font-medium">
-        {format}
+      <span className="inline-block px-3 py-1 bg-primary-600 text-white rounded text-xs font-medium hover:bg-primary-700">
+        Download {format}
       </span>
-    </div>
+    </button>
   );
 }

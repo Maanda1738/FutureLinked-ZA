@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import SearchBar from '../components/SearchBar';
 import SearchResults from '../components/SearchResults';
+import FilterSort from '../components/FilterSort';
 import EnhancedAdBanner from '../components/EnhancedAdBanner';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -10,12 +11,15 @@ import { usePageTracking, logSearch } from '../utils/analytics';
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [filteredResults, setFilteredResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
   const [searchLocation, setSearchLocation] = useState('');
+  const [filters, setFilters] = useState({});
+  const [sortBy, setSortBy] = useState('date');
 
   // Page tracking
   usePageTracking();
@@ -52,6 +56,64 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  // Filter and sort logic
+  useEffect(() => {
+    let results = [...searchResults];
+
+    // Apply filters
+    if (filters.salaryMin) {
+      results = results.filter(job => {
+        if (!job.salary) return false;
+        const salaryMatch = job.salary.match(/\d+/g);
+        if (salaryMatch) {
+          const salary = parseInt(salaryMatch[0]);
+          return salary >= parseInt(filters.salaryMin);
+        }
+        return false;
+      });
+    }
+
+    if (filters.workType && filters.workType !== 'all') {
+      results = results.filter(job => {
+        const text = `${job.title} ${job.description || ''}`.toLowerCase();
+        if (filters.workType === 'remote') return text.includes('remote');
+        if (filters.workType === 'onsite') return !text.includes('remote');
+        if (filters.workType === 'hybrid') return text.includes('hybrid');
+        return true;
+      });
+    }
+
+    if (filters.datePosted && filters.datePosted !== 'all') {
+      const now = new Date();
+      results = results.filter(job => {
+        if (!job.posted) return true;
+        const posted = new Date(job.posted);
+        const diffHours = (now - posted) / (1000 * 60 * 60);
+        
+        if (filters.datePosted === '24h') return diffHours <= 24;
+        if (filters.datePosted === '3days') return diffHours <= 72;
+        if (filters.datePosted === '7days') return diffHours <= 168;
+        return true;
+      });
+    }
+
+    // Apply sorting
+    if (sortBy === 'date') {
+      results.sort((a, b) => new Date(b.posted || 0) - new Date(a.posted || 0));
+    } else if (sortBy === 'salary') {
+      results.sort((a, b) => {
+        const getSalary = (job) => {
+          if (!job.salary) return 0;
+          const match = job.salary.match(/\d+/g);
+          return match ? parseInt(match[0]) : 0;
+        };
+        return getSalary(b) - getSalary(a);
+      });
+    }
+
+    setFilteredResults(results);
+  }, [searchResults, filters, sortBy]);
 
   const handleLoadMore = async () => {
     if (loadingMore) return;
@@ -205,13 +267,20 @@ export default function Home() {
                 placement="top"
               />
 
+              {/* Filter and Sort Controls */}
+              <FilterSort
+                onFilterChange={setFilters}
+                onSortChange={setSortBy}
+                resultsCount={filteredResults.length}
+              />
+
               <SearchResults 
-                results={searchResults}
+                results={filteredResults}
                 loading={loading}
                 loadingMore={loadingMore}
                 query={searchQuery}
                 totalResults={totalResults}
-                currentCount={searchResults.length}
+                currentCount={filteredResults.length}
                 onLoadMore={handleLoadMore}
               />
 

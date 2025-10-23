@@ -1,4 +1,5 @@
-import { ExternalLink, MapPin, Calendar, Building, Loader, ChevronDown } from 'lucide-react';
+import { ExternalLink, MapPin, Calendar, Building, Loader, ChevronDown, Star, Heart } from 'lucide-react';
+import { useSavedJobs } from '../context/SavedJobsContext';
 
 export default function SearchResults({ results, loading, loadingMore, query, totalResults, currentCount, onLoadMore }) {
   if (loading) {
@@ -130,6 +131,18 @@ export default function SearchResults({ results, loading, loadingMore, query, to
 }
 
 function JobCard({ job }) {
+  const { saveJob, unsaveJob, isSaved } = useSavedJobs();
+  const saved = isSaved(job.id);
+
+  const handleSaveToggle = (e) => {
+    e.preventDefault();
+    if (saved) {
+      unsaveJob(job.id);
+    } else {
+      saveJob(job);
+    }
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'Date not specified';
     try {
@@ -280,15 +293,41 @@ function JobCard({ job }) {
           )}
         </div>
         
-        <a
-          href={job.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors font-medium"
-        >
-          Apply Now
-          <ExternalLink className="h-4 w-4" />
-        </a>
+        <div className="flex items-center gap-2">
+          {/* Save Button */}
+          <button
+            onClick={handleSaveToggle}
+            className={`inline-flex items-center gap-1 px-4 py-2 rounded-md font-medium transition-all ${
+              saved 
+                ? 'bg-red-100 text-red-600 hover:bg-red-200' 
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+            title={saved ? 'Remove from saved jobs' : 'Save for later'}
+          >
+            {saved ? (
+              <>
+                <Heart className="h-4 w-4 fill-current" />
+                Saved
+              </>
+            ) : (
+              <>
+                <Star className="h-4 w-4" />
+                Save
+              </>
+            )}
+          </button>
+
+          {/* Apply Now Button */}
+          <a
+            href={job.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors font-medium"
+          >
+            Apply Now
+            <ExternalLink className="h-4 w-4" />
+          </a>
+        </div>
       </div>
     </div>
   );

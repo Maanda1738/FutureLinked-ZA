@@ -1,7 +1,10 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { Heart } from 'lucide-react';
+import { useSavedJobs } from '../context/SavedJobsContext';
 
 export default function Header() {
+  const { savedCount } = useSavedJobs();
   return (
     <header className="bg-white shadow-sm border-b">
       <div className="container mx-auto px-4 py-4">
@@ -27,6 +30,15 @@ export default function Header() {
           <nav className="hidden md:flex items-center space-x-6">
             <Link href="/" className="text-gray-600 hover:text-primary-600 transition-colors">
               Home
+            </Link>
+            <Link href="/saved-jobs" className="relative text-gray-600 hover:text-primary-600 transition-colors flex items-center gap-1">
+              <Heart className="h-4 w-4" />
+              Saved Jobs
+              {savedCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                  {savedCount}
+                </span>
+              )}
             </Link>
             <Link href="/about" className="text-gray-600 hover:text-primary-600 transition-colors">
               About

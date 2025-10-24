@@ -9,7 +9,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { usePageTracking, logSearch } from '../utils/analytics';
 
-// JSearch API integration active - dual API search enabled
+// JSearch API integration active - dual API search enabled v2
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);

@@ -3,6 +3,10 @@
   publish = ".next"
   command = "npm install && npm run build"
 
+[functions]
+  directory = "backend/netlify/functions"
+  node_bundler = "esbuild"
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 

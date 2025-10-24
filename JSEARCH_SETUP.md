@@ -21,9 +21,9 @@ I've successfully integrated the JSearch API to work alongside Adzuna, which wil
 - If one API fails, the other continues working
 - The response now includes source information so you can track which API is working
 
-## 🔧 Next Steps - Required Setup
+## 🔧 Next Steps - CRITICAL SETUP REQUIRED
 
-### Add JSearch API Key to Netlify:
+### Add JSearch API Key to Netlify (MUST DO THIS NOW):
 
 1. Go to your Netlify dashboard: https://app.netlify.com
 2. Select your **futurelinked-za** site

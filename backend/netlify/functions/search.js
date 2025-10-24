@@ -127,8 +127,20 @@ exports.handler = async (event, context) => {
     let allJobs = [];
     let totalCount = 0;
 
+    // Log API responses for debugging
+    console.log('Adzuna status:', adzunaResponse.status);
+    console.log('JSearch status:', jsearchResponse.status);
+    
+    if (adzunaResponse.status === 'rejected') {
+      console.error('Adzuna API error:', adzunaResponse.reason?.message);
+    }
+    if (jsearchResponse.status === 'rejected') {
+      console.error('JSearch API error:', jsearchResponse.reason?.message);
+    }
+
     // Process Adzuna results
     if (adzunaResponse.status === 'fulfilled' && adzunaResponse.value.data) {
+      console.log('Adzuna results count:', adzunaResponse.value.data.results?.length);
       const adzunaJobs = adzunaResponse.value.data.results.map(job => ({
         id: `adzuna-${job.id}`,
         title: job.title,
@@ -150,6 +162,7 @@ exports.handler = async (event, context) => {
 
     // Process JSearch results
     if (jsearchResponse.status === 'fulfilled' && jsearchResponse.value.data?.data) {
+      console.log('JSearch results count:', jsearchResponse.value.data.data?.length);
       const jsearchJobs = jsearchResponse.value.data.data.map(job => ({
         id: `jsearch-${job.job_id}`,
         title: job.job_title,
@@ -187,6 +200,29 @@ exports.handler = async (event, context) => {
     uniqueJobs.sort((a, b) => new Date(b.posted) - new Date(a.posted));
 
     const jobs = uniqueJobs;
+    
+    console.log('Total unique jobs returned:', jobs.length);
+    
+    // If no results from either API, return appropriate message
+    if (jobs.length === 0) {
+      console.log('No jobs found from either API');
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          results: [],
+          total: 0,
+          totalAvailable: 0,
+          page: page,
+          sources: {
+            adzuna: adzunaResponse.status === 'fulfilled',
+            jsearch: jsearchResponse.status === 'fulfilled'
+          },
+          message: 'No jobs found matching your search criteria'
+        })
+      };
+    }
 
     return {
       statusCode: 200,

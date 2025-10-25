@@ -240,9 +240,19 @@ exports.handler = async (event, context) => {
       source: 'Adzuna'
     }));
     
-    // Filter out irrelevant jobs based on search query
-    const relevantJobs = adzunaJobs.filter(job => isJobRelevant(job, query));
-    console.log(`🎯 Relevance filter: ${adzunaJobs.length} jobs → ${relevantJobs.length} relevant jobs`);
+    // Apply relevance filter ONLY for bursary searches
+    let relevantJobs = adzunaJobs;
+    
+    if (query.toLowerCase().includes('bursary') || 
+        query.toLowerCase().includes('scholarship') || 
+        query.toLowerCase().includes('funding')) {
+      // Strict filtering for bursary searches
+      relevantJobs = adzunaJobs.filter(job => isJobRelevant(job, query));
+      console.log(`🎯 Bursary filter: ${adzunaJobs.length} jobs → ${relevantJobs.length} relevant bursaries`);
+    } else {
+      // No filtering for regular job searches - show all results from Adzuna
+      console.log(`✅ Regular search - showing all ${adzunaJobs.length} results from Adzuna`);
+    }
     
     allJobs = relevantJobs;
     const jobs = allJobs;

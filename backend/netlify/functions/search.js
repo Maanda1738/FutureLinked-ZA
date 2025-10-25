@@ -169,14 +169,7 @@ exports.handler = async (event, context) => {
       const titleLower = job.title.toLowerCase();
       const descLower = (job.description || '').toLowerCase();
       
-      // Extract main search terms (remove OR, AND, parentheses)
-      const mainTerms = queryLower
-        .replace(/\(|\)/g, '')
-        .split(/\s+(?:or|and)\s+/i)
-        .map(t => t.trim())
-        .filter(t => t.length > 2); // Ignore very short terms
-      
-      // Special handling for bursary/funding searches
+      // Special handling for bursary/funding searches - these need strict filtering
       if (queryLower.includes('bursary') || queryLower.includes('scholarship') || queryLower.includes('funding')) {
         const fundingKeywords = ['bursary', 'bursaries', 'scholarship', 'scholarships', 'funding', 'grant', 'student funding'];
         const hasFundingTerm = fundingKeywords.some(keyword => 
@@ -189,7 +182,6 @@ exports.handler = async (event, context) => {
         }
         
         // If searching for field-specific bursary (e.g., "engineering bursary")
-        // Check if the field is mentioned
         const fieldMatch = queryLower.match(/(.+?)\s+(?:bursary|scholarship|funding)/);
         if (fieldMatch) {
           const field = fieldMatch[1].trim();
@@ -204,39 +196,28 @@ exports.handler = async (event, context) => {
         return true;
       }
       
-      // Check if ANY main term appears in title or description
-      const hasRelevantTerm = mainTerms.some(term => {
-        return titleLower.includes(term) || descLower.includes(term);
+      // For regular job searches, use lenient matching
+      // Extract main search terms (remove OR, AND, parentheses, quotes)
+      const mainTerms = queryLower
+        .replace(/[()'"]/g, '')
+        .split(/\s+(?:or|and)\s+/i)
+        .filter(t => t.trim().length > 2);
+      
+      // If no valid terms, accept the job (don't filter)
+      if (mainTerms.length === 0) {
+        return true;
+      }
+      
+      // Check if ANY term appears in title or description
+      const hasMatch = mainTerms.some(term => {
+        const cleanTerm = term.trim();
+        return titleLower.includes(cleanTerm) || descLower.includes(cleanTerm);
       });
       
-      if (!hasRelevantTerm) {
-        console.log(`❌ Filtering out irrelevant job: "${job.title}" - no match for "${queryLower}"`);
+      // Only filter out if NO terms match at all
+      if (!hasMatch) {
+        console.log(`❌ Filtering out: "${job.title}" - no match for search terms`);
         return false;
-      }
-      
-      // Additional checks for specific queries
-      if (queryLower.includes('economics')) {
-        // Must contain economics or economist
-        if (!titleLower.includes('econom') && !descLower.includes('econom')) {
-          console.log(`❌ Filtering out: "${job.title}" - not economics related`);
-          return false;
-        }
-      }
-      
-      if (queryLower.includes('engineering')) {
-        // Must contain engineer
-        if (!titleLower.includes('engineer') && !descLower.includes('engineer')) {
-          console.log(`❌ Filtering out: "${job.title}" - not engineering related`);
-          return false;
-        }
-      }
-      
-      if (queryLower.includes('accounting')) {
-        // Must contain account or accountant
-        if (!titleLower.includes('account') && !descLower.includes('account')) {
-          console.log(`❌ Filtering out: "${job.title}" - not accounting related`);
-          return false;
-        }
       }
       
       return true;

@@ -47,15 +47,33 @@ exports.handler = async (event, context) => {
         'learnership': 'learnership OR apprenticeship OR training program'
       };
       
-      // Check for specific bursary searches with fields
-      if (lowerQuery.includes('bursary') || lowerQuery.includes('bursaries')) {
-        // If searching for specific field (e.g., "IT bursary"), keep field but expand bursary term
-        const parts = searchQuery.split(/\s+/);
-        const field = parts.find(p => !['bursary', 'bursaries'].includes(p.toLowerCase()));
-        if (field) {
-          return `${field} (bursary OR scholarship OR funding)`;
-        }
-        return 'bursary OR scholarship OR funding';
+      // Check if query contains bursary/scholarship terms with a field/course
+      const bursaryPattern = /(.+?)\s+(bursary|bursaries|scholarship|scholarships|funding)/i;
+      const bursaryMatch = searchQuery.match(bursaryPattern);
+      
+      if (bursaryMatch) {
+        const field = bursaryMatch[1].trim(); // e.g., "computer science", "engineering", "accounting"
+        const fundingTerm = bursaryMatch[2].toLowerCase();
+        
+        console.log(`📚 Detected field-specific bursary search: "${field}" + "${fundingTerm}"`);
+        
+        // Create expanded query: "field (bursary OR scholarship OR funding)"
+        return `${field} (bursary OR scholarship OR funding OR "student funding" OR grant)`;
+      }
+      
+      // Check for reverse pattern: "bursary for engineering" or "bursary in IT"
+      const reverseBursaryPattern = /(bursary|bursaries|scholarship|scholarships|funding)\s+(?:for|in|to|study)\s+(.+)/i;
+      const reverseMatch = searchQuery.match(reverseBursaryPattern);
+      
+      if (reverseMatch) {
+        const field = reverseMatch[2].trim();
+        console.log(`📚 Detected reverse bursary search: "${field}"`);
+        return `${field} (bursary OR scholarship OR funding OR "student funding" OR grant)`;
+      }
+      
+      // Check if searching for just "bursary" or "bursaries" alone
+      if (lowerQuery === 'bursary' || lowerQuery === 'bursaries') {
+        return 'bursary OR scholarship OR funding OR "student funding" OR grant';
       }
       
       // Check for exact matches in mapping
@@ -157,6 +175,34 @@ exports.handler = async (event, context) => {
         .split(/\s+(?:or|and)\s+/i)
         .map(t => t.trim())
         .filter(t => t.length > 2); // Ignore very short terms
+      
+      // Special handling for bursary/funding searches
+      if (queryLower.includes('bursary') || queryLower.includes('scholarship') || queryLower.includes('funding')) {
+        const fundingKeywords = ['bursary', 'bursaries', 'scholarship', 'scholarships', 'funding', 'grant', 'student funding'];
+        const hasFundingTerm = fundingKeywords.some(keyword => 
+          titleLower.includes(keyword) || descLower.includes(keyword)
+        );
+        
+        if (!hasFundingTerm) {
+          console.log(`❌ Filtering out: "${job.title}" - not a bursary/funding opportunity`);
+          return false;
+        }
+        
+        // If searching for field-specific bursary (e.g., "engineering bursary")
+        // Check if the field is mentioned
+        const fieldMatch = queryLower.match(/(.+?)\s+(?:bursary|scholarship|funding)/);
+        if (fieldMatch) {
+          const field = fieldMatch[1].trim();
+          if (field.length > 2 && !field.match(/^(a|an|the|for|in)$/)) {
+            if (!titleLower.includes(field) && !descLower.includes(field)) {
+              console.log(`❌ Filtering out: "${job.title}" - doesn't match field "${field}"`);
+              return false;
+            }
+          }
+        }
+        
+        return true;
+      }
       
       // Check if ANY main term appears in title or description
       const hasRelevantTerm = mainTerms.some(term => {

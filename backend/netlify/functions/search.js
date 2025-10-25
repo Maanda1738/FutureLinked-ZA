@@ -196,43 +196,11 @@ exports.handler = async (event, context) => {
       return requirements.slice(0, 5);
     };
 
-    let allJobs = [];
-
-    // Helper function to check if job is relevant to search query
+    // Process Adzuna results
     const isJobRelevant = (job, searchQuery) => {
       const queryLower = searchQuery.toLowerCase();
       const titleLower = job.title.toLowerCase();
       const descLower = (job.description || '').toLowerCase();
-      
-      // Special handling for bursary/funding searches - STRICT title filtering
-      if (queryLower.includes('bursary') || queryLower.includes('scholarship') || queryLower.includes('funding')) {
-        // For bursaries, the keyword MUST appear in the title (not just description)
-        // This filters out regular jobs that just mention bursaries as a benefit
-        const bursaryKeywords = ['bursary', 'bursaries', 'scholarship', 'scholarships', 'bursaries'];
-        const hasBursaryInTitle = bursaryKeywords.some(keyword => titleLower.includes(keyword));
-        
-        if (!hasBursaryInTitle) {
-          console.log(`❌ Filtering out: "${job.title}" - not a bursary opportunity (keyword not in title)`);
-          return false;
-        }
-        
-        // If searching for field-specific bursary (e.g., "engineering bursary")
-        const fieldMatch = queryLower.match(/(.+?)\s+(?:bursary|scholarship|funding)/);
-        if (fieldMatch) {
-          const field = fieldMatch[1].trim();
-          if (field.length > 2 && !field.match(/^(a|an|the|for|in)$/)) {
-            // For field-specific searches, check if field appears in title or description
-            const hasFieldMatch = titleLower.includes(field) || descLower.includes(field);
-            if (!hasFieldMatch) {
-              console.log(`❌ Filtering out: "${job.title}" - doesn't match field "${field}"`);
-              return false;
-            }
-          }
-        }
-        
-        console.log(`✅ Keeping: "${job.title}" - valid bursary opportunity`);
-        return true;
-      }
       
       // For regular job searches, use lenient matching
       // Extract main search terms (remove OR, AND, parentheses, quotes)
@@ -252,13 +220,7 @@ exports.handler = async (event, context) => {
         return titleLower.includes(cleanTerm) || descLower.includes(cleanTerm);
       });
       
-      // Only filter out if NO terms match at all
-      if (!hasMatch) {
-        console.log(`❌ Filtering out: "${job.title}" - no match for search terms`);
-        return false;
-      }
-      
-      return true;
+      return hasMatch;
     };
 
     // Process Adzuna results
@@ -278,21 +240,11 @@ exports.handler = async (event, context) => {
       source: 'Adzuna'
     }));
     
-    // Apply relevance filter ONLY for bursary searches
-    let relevantJobs = adzunaJobs;
+    // Apply relevance filter for all searches
+    const relevantJobs = adzunaJobs.filter(job => isJobRelevant(job, query));
+    console.log(`🎯 Filter: ${adzunaJobs.length} jobs → ${relevantJobs.length} relevant results`);
     
-    if (query.toLowerCase().includes('bursary') || 
-        query.toLowerCase().includes('scholarship') || 
-        query.toLowerCase().includes('funding')) {
-      // Strict filtering for bursary searches
-      relevantJobs = adzunaJobs.filter(job => isJobRelevant(job, query));
-      console.log(`🎯 Bursary filter: ${adzunaJobs.length} jobs → ${relevantJobs.length} relevant bursaries`);
-    } else {
-      // No filtering for regular job searches - show all results from Adzuna
-      console.log(`✅ Regular search - showing all ${adzunaJobs.length} results from Adzuna`);
-    }
-    
-    allJobs = relevantJobs;
+    const allJobs = relevantJobs;
     const jobs = allJobs;
 
     return {

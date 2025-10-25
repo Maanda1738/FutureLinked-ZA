@@ -35,16 +35,19 @@ exports.handler = async (event, context) => {
     const improveSearchQuery = (searchQuery) => {
       const lowerQuery = searchQuery.toLowerCase();
       
-      // Map common student searches to better terms
-      const queryMappings = {
-        'bursary': 'bursary OR scholarship OR funding',
-        'bursaries': 'bursary OR scholarship OR funding',
-        'scholarship': 'scholarship OR bursary OR funding',
-        'scholarships': 'scholarship OR bursary OR funding',
-        'internship': 'internship OR intern OR traineeship',
-        'internships': 'internship OR intern OR traineeship',
-        'graduate program': 'graduate program OR graduate programme OR grad programme',
-        'learnership': 'learnership OR apprenticeship OR training program'
+      // For bursary/scholarship searches, keep it simple - Adzuna doesn't handle complex OR queries well
+      // Just use the main term without expansion
+      const simpleTerms = {
+        'bursary': 'bursary',
+        'bursaries': 'bursary',
+        'scholarship': 'scholarship',
+        'scholarships': 'scholarship',
+        'internship': 'internship',
+        'internships': 'internship',
+        'learnership': 'learnership',
+        'graduate program': 'graduate',
+        'graduate programme': 'graduate',
+        'trainee': 'trainee'
       };
       
       // Check if query contains bursary/scholarship terms with a field/course
@@ -57,8 +60,10 @@ exports.handler = async (event, context) => {
         
         console.log(`📚 Detected field-specific bursary search: "${field}" + "${fundingTerm}"`);
         
-        // Create expanded query: "field (bursary OR scholarship OR funding)"
-        return `${field} (bursary OR scholarship OR funding OR "student funding" OR grant)`;
+        // Keep it simple - just combine field with main term
+        const simpleTerm = fundingTerm.includes('bursary') ? 'bursary' : 
+                          fundingTerm.includes('scholarship') ? 'scholarship' : 'funding';
+        return `${field} ${simpleTerm}`;
       }
       
       // Check for reverse pattern: "bursary for engineering" or "bursary in IT"
@@ -67,18 +72,16 @@ exports.handler = async (event, context) => {
       
       if (reverseMatch) {
         const field = reverseMatch[2].trim();
+        const fundingTerm = reverseMatch[1].toLowerCase();
+        const simpleTerm = fundingTerm.includes('bursary') ? 'bursary' : 
+                          fundingTerm.includes('scholarship') ? 'scholarship' : 'funding';
         console.log(`📚 Detected reverse bursary search: "${field}"`);
-        return `${field} (bursary OR scholarship OR funding OR "student funding" OR grant)`;
+        return `${simpleTerm} ${field}`;
       }
       
-      // Check if searching for just "bursary" or "bursaries" alone
-      if (lowerQuery === 'bursary' || lowerQuery === 'bursaries') {
-        return 'bursary OR scholarship OR funding OR "student funding" OR grant';
-      }
-      
-      // Check for exact matches in mapping
-      if (queryMappings[lowerQuery]) {
-        return queryMappings[lowerQuery];
+      // Check for exact matches in simple terms mapping
+      if (simpleTerms[lowerQuery]) {
+        return simpleTerms[lowerQuery];
       }
       
       // Return original query if no mapping

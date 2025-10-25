@@ -145,6 +145,57 @@ exports.handler = async (event, context) => {
 
     let allJobs = [];
 
+    // Helper function to check if job is relevant to search query
+    const isJobRelevant = (job, searchQuery) => {
+      const queryLower = searchQuery.toLowerCase();
+      const titleLower = job.title.toLowerCase();
+      const descLower = (job.description || '').toLowerCase();
+      
+      // Extract main search terms (remove OR, AND, parentheses)
+      const mainTerms = queryLower
+        .replace(/\(|\)/g, '')
+        .split(/\s+(?:or|and)\s+/i)
+        .map(t => t.trim())
+        .filter(t => t.length > 2); // Ignore very short terms
+      
+      // Check if ANY main term appears in title or description
+      const hasRelevantTerm = mainTerms.some(term => {
+        return titleLower.includes(term) || descLower.includes(term);
+      });
+      
+      if (!hasRelevantTerm) {
+        console.log(`❌ Filtering out irrelevant job: "${job.title}" - no match for "${queryLower}"`);
+        return false;
+      }
+      
+      // Additional checks for specific queries
+      if (queryLower.includes('economics')) {
+        // Must contain economics or economist
+        if (!titleLower.includes('econom') && !descLower.includes('econom')) {
+          console.log(`❌ Filtering out: "${job.title}" - not economics related`);
+          return false;
+        }
+      }
+      
+      if (queryLower.includes('engineering')) {
+        // Must contain engineer
+        if (!titleLower.includes('engineer') && !descLower.includes('engineer')) {
+          console.log(`❌ Filtering out: "${job.title}" - not engineering related`);
+          return false;
+        }
+      }
+      
+      if (queryLower.includes('accounting')) {
+        // Must contain account or accountant
+        if (!titleLower.includes('account') && !descLower.includes('account')) {
+          console.log(`❌ Filtering out: "${job.title}" - not accounting related`);
+          return false;
+        }
+      }
+      
+      return true;
+    };
+
     // Process Adzuna results
     const adzunaJobs = response.data.results.map(job => ({
       id: `adzuna-${job.id}`,
@@ -162,7 +213,11 @@ exports.handler = async (event, context) => {
       source: 'Adzuna'
     }));
     
-    allJobs = adzunaJobs;
+    // Filter out irrelevant jobs based on search query
+    const relevantJobs = adzunaJobs.filter(job => isJobRelevant(job, query));
+    console.log(`🎯 Relevance filter: ${adzunaJobs.length} jobs → ${relevantJobs.length} relevant jobs`);
+    
+    allJobs = relevantJobs;
     const jobs = allJobs;
 
     return {

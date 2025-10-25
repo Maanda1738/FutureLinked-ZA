@@ -31,6 +31,45 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Improve search query for better results
+    const improveSearchQuery = (searchQuery) => {
+      const lowerQuery = searchQuery.toLowerCase();
+      
+      // Map common student searches to better terms
+      const queryMappings = {
+        'bursary': 'bursary OR scholarship OR funding',
+        'bursaries': 'bursary OR scholarship OR funding',
+        'scholarship': 'scholarship OR bursary OR funding',
+        'scholarships': 'scholarship OR bursary OR funding',
+        'internship': 'internship OR intern OR traineeship',
+        'internships': 'internship OR intern OR traineeship',
+        'graduate program': 'graduate program OR graduate programme OR grad programme',
+        'learnership': 'learnership OR apprenticeship OR training program'
+      };
+      
+      // Check for specific bursary searches with fields
+      if (lowerQuery.includes('bursary') || lowerQuery.includes('bursaries')) {
+        // If searching for specific field (e.g., "IT bursary"), keep field but expand bursary term
+        const parts = searchQuery.split(/\s+/);
+        const field = parts.find(p => !['bursary', 'bursaries'].includes(p.toLowerCase()));
+        if (field) {
+          return `${field} (bursary OR scholarship OR funding)`;
+        }
+        return 'bursary OR scholarship OR funding';
+      }
+      
+      // Check for exact matches in mapping
+      if (queryMappings[lowerQuery]) {
+        return queryMappings[lowerQuery];
+      }
+      
+      // Return original query if no mapping
+      return searchQuery;
+    };
+
+    const improvedQuery = improveSearchQuery(query);
+    console.log('Original query:', query, '-> Improved query:', improvedQuery);
+
     // Call Adzuna API
     const ADZUNA_APP_ID = process.env.ADZUNA_APP_ID || 'aea61773';
     const ADZUNA_API_KEY = process.env.ADZUNA_API_KEY || '3e762a8402260d23f5d5115d9ba80c26';
@@ -41,7 +80,7 @@ exports.handler = async (event, context) => {
         app_id: ADZUNA_APP_ID,
         app_key: ADZUNA_API_KEY,
         results_per_page: 15,
-        what: query,
+        what: improvedQuery,
         where: location,
         max_days_old: 7,
         sort_by: 'date'

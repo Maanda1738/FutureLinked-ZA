@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import SearchBar from '../components/SearchBar';
 import SearchResults from '../components/SearchResults';
 import FilterSort from '../components/FilterSort';
@@ -318,6 +319,45 @@ export default function Home() {
           {/* Features Section (when no search) */}
           {!hasSearched && (
             <>
+              {/* Career Tips Section - Prominent */}
+              <div className="py-12 bg-gradient-to-r from-primary-600 to-purple-600">
+                <div className="container mx-auto px-4">
+                  <h2 className="text-3xl font-bold text-center mb-3 text-white">
+                    🎯 Need Help With Your Job Search?
+                  </h2>
+                  <p className="text-center text-white text-lg mb-8">Free career guides to help you succeed</p>
+                  
+                  <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                    <Link href="/articles/cv-writing-guide" className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
+                      <div className="text-4xl mb-3">📝</div>
+                      <h3 className="text-xl font-semibold mb-2 text-gray-800">CV Writing Guide</h3>
+                      <p className="text-gray-600 text-sm mb-3">Create a winning CV that gets interviews</p>
+                      <span className="text-primary-600 font-medium text-sm">Read Guide →</span>
+                    </Link>
+                    
+                    <Link href="/articles/interview-guide" className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
+                      <div className="text-4xl mb-3">💼</div>
+                      <h3 className="text-xl font-semibold mb-2 text-gray-800">Interview Tips</h3>
+                      <p className="text-gray-600 text-sm mb-3">Ace your interview with expert advice</p>
+                      <span className="text-primary-600 font-medium text-sm">Read Guide →</span>
+                    </Link>
+                    
+                    <Link href="/articles/salary-negotiation" className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
+                      <div className="text-4xl mb-3">💰</div>
+                      <h3 className="text-xl font-semibold mb-2 text-gray-800">Salary Negotiation</h3>
+                      <p className="text-gray-600 text-sm mb-3">Get paid what you're worth</p>
+                      <span className="text-primary-600 font-medium text-sm">Read Guide →</span>
+                    </Link>
+                  </div>
+                  
+                  <div className="text-center mt-6">
+                    <Link href="/resources" className="inline-block bg-white text-primary-600 px-6 py-3 rounded-full font-semibold hover:bg-gray-100 transition-colors">
+                      View All Career Resources →
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
               <div className="py-16 bg-white">
                 <div className="container mx-auto px-4">
                   <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">

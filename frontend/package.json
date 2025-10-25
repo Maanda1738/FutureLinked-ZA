@@ -1,6 +1,6 @@
 {
   "name": "futurelinked-za-frontend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "FutureLinked ZA - Frontend React Application",
   "private": true,
   "scripts": {

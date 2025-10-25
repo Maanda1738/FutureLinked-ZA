@@ -169,16 +169,20 @@ exports.handler = async (event, context) => {
       const titleLower = job.title.toLowerCase();
       const descLower = (job.description || '').toLowerCase();
       
-      // Special handling for bursary/funding searches - these need strict filtering
+      // Special handling for bursary/funding searches - use more lenient matching
       if (queryLower.includes('bursary') || queryLower.includes('scholarship') || queryLower.includes('funding')) {
-        const fundingKeywords = ['bursary', 'bursaries', 'scholarship', 'scholarships', 'funding', 'grant', 'student funding'];
+        const fundingKeywords = [
+          'bursary', 'bursaries', 'scholarship', 'scholarships', 'funding', 'grant', 
+          'student funding', 'financial aid', 'study assistance', 'internship', 
+          'learnership', 'graduate program', 'graduate programme', 'trainee', 'training'
+        ];
         const hasFundingTerm = fundingKeywords.some(keyword => 
           titleLower.includes(keyword) || descLower.includes(keyword)
         );
         
+        // Log but DON'T filter out - let users see what Adzuna returns
         if (!hasFundingTerm) {
-          console.log(`❌ Filtering out: "${job.title}" - not a bursary/funding opportunity`);
-          return false;
+          console.log(`⚠️ Note: "${job.title}" - may not be traditional bursary, but keeping in results`);
         }
         
         // If searching for field-specific bursary (e.g., "engineering bursary")
@@ -186,13 +190,15 @@ exports.handler = async (event, context) => {
         if (fieldMatch) {
           const field = fieldMatch[1].trim();
           if (field.length > 2 && !field.match(/^(a|an|the|for|in)$/)) {
-            if (!titleLower.includes(field) && !descLower.includes(field)) {
-              console.log(`❌ Filtering out: "${job.title}" - doesn't match field "${field}"`);
-              return false;
+            // Check if field appears anywhere
+            const hasFieldMatch = titleLower.includes(field) || descLower.includes(field);
+            if (!hasFieldMatch) {
+              console.log(`⚠️ Note: "${job.title}" - doesn't match field "${field}", but keeping in results`);
             }
           }
         }
         
+        // Accept all results for bursary searches - let Adzuna API do the filtering
         return true;
       }
       

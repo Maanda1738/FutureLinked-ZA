@@ -102,9 +102,12 @@ exports.handler = async (event, context) => {
                            query.toLowerCase().includes('graduate programme') ||
                            query.toLowerCase().includes('internship') ||
                            query.toLowerCase().includes('trainee');
-    const maxDaysOld = isBursarySearch ? 30 : 7;  // 30 days for bursaries/programs, 7 days for jobs
+    const maxDaysOld = isBursarySearch ? 90 : 7;  // 90 days for bursaries/programs (they stay open longer), 7 days for jobs
     
     console.log(`🔍 Search type: ${isBursarySearch ? 'BURSARY/FUNDING' : 'REGULAR JOB'} (max_days_old: ${maxDaysOld})`);
+    
+    // For bursary searches, make location less restrictive (use broader "south africa" instead of specific cities)
+    const searchLocation = isBursarySearch ? 'south africa' : location;
     
     // Fetch from Adzuna API
     const adzunaParams = {
@@ -112,7 +115,7 @@ exports.handler = async (event, context) => {
       app_key: ADZUNA_API_KEY,
       results_per_page: 15,
       what: improvedQuery,
-      where: location,
+      where: searchLocation,
       max_days_old: maxDaysOld,
       sort_by: 'date'
     };

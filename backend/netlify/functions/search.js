@@ -92,6 +92,16 @@ exports.handler = async (event, context) => {
     const ADZUNA_APP_ID = process.env.ADZUNA_APP_ID || 'aea61773';
     const ADZUNA_API_KEY = process.env.ADZUNA_API_KEY || '3e762a8402260d23f5d5115d9ba80c26';
     
+    // Determine max_days_old based on search type
+    // Bursaries/scholarships are typically open for longer periods
+    const isBursarySearch = query.toLowerCase().includes('bursary') || 
+                           query.toLowerCase().includes('scholarship') || 
+                           query.toLowerCase().includes('funding') ||
+                           query.toLowerCase().includes('learnership');
+    const maxDaysOld = isBursarySearch ? 30 : 7;  // 30 days for bursaries, 7 days for jobs
+    
+    console.log(`🔍 Search type: ${isBursarySearch ? 'BURSARY/FUNDING' : 'REGULAR JOB'} (max_days_old: ${maxDaysOld})`);
+    
     // Fetch from Adzuna API
     const response = await axios.get(`https://api.adzuna.com/v1/api/jobs/za/search/${page}`, {
       params: {
@@ -100,7 +110,7 @@ exports.handler = async (event, context) => {
         results_per_page: 15,
         what: improvedQuery,
         where: location,
-        max_days_old: 7,
+        max_days_old: maxDaysOld,
         sort_by: 'date'
       }
     });

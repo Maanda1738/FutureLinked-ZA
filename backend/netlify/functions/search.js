@@ -93,12 +93,16 @@ exports.handler = async (event, context) => {
     const ADZUNA_API_KEY = process.env.ADZUNA_API_KEY || '3e762a8402260d23f5d5115d9ba80c26';
     
     // Determine max_days_old based on search type
-    // Bursaries/scholarships are typically open for longer periods
+    // Bursaries/scholarships/graduate programs are typically open for longer periods
     const isBursarySearch = query.toLowerCase().includes('bursary') || 
                            query.toLowerCase().includes('scholarship') || 
                            query.toLowerCase().includes('funding') ||
-                           query.toLowerCase().includes('learnership');
-    const maxDaysOld = isBursarySearch ? 30 : 7;  // 30 days for bursaries, 7 days for jobs
+                           query.toLowerCase().includes('learnership') ||
+                           query.toLowerCase().includes('graduate program') ||
+                           query.toLowerCase().includes('graduate programme') ||
+                           query.toLowerCase().includes('internship') ||
+                           query.toLowerCase().includes('trainee');
+    const maxDaysOld = isBursarySearch ? 30 : 7;  // 30 days for bursaries/programs, 7 days for jobs
     
     console.log(`🔍 Search type: ${isBursarySearch ? 'BURSARY/FUNDING' : 'REGULAR JOB'} (max_days_old: ${maxDaysOld})`);
     

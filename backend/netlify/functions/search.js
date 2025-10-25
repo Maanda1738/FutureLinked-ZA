@@ -107,17 +107,32 @@ exports.handler = async (event, context) => {
     console.log(`🔍 Search type: ${isBursarySearch ? 'BURSARY/FUNDING' : 'REGULAR JOB'} (max_days_old: ${maxDaysOld})`);
     
     // Fetch from Adzuna API
+    const adzunaParams = {
+      app_id: ADZUNA_APP_ID,
+      app_key: ADZUNA_API_KEY,
+      results_per_page: 15,
+      what: improvedQuery,
+      where: location,
+      max_days_old: maxDaysOld,
+      sort_by: 'date'
+    };
+
+    console.log('📡 Calling Adzuna with params:', JSON.stringify(adzunaParams));
+
     const response = await axios.get(`https://api.adzuna.com/v1/api/jobs/za/search/${page}`, {
-      params: {
-        app_id: ADZUNA_APP_ID,
-        app_key: ADZUNA_API_KEY,
-        results_per_page: 15,
-        what: improvedQuery,
-        where: location,
-        max_days_old: maxDaysOld,
-        sort_by: 'date'
-      }
+      params: adzunaParams
     });
+
+    // Debug output: log counts and sample titles to help diagnose empty results
+    try {
+      console.log(`📥 Adzuna returned count=${response.data.count}, results.length=${(response.data.results||[]).length}`);
+      if (response.data.results && response.data.results.length > 0) {
+        const sample = response.data.results.slice(0,3).map(r => r.title);
+        console.log('📚 Sample titles:', JSON.stringify(sample));
+      }
+    } catch (e) {
+      console.log('⚠️ Failed to parse Adzuna response for debug logging', e && e.message);
+    }
 
     // Helper function to extract requirements from description
     const extractRequirements = (description) => {

@@ -130,29 +130,27 @@ exports.handler = async (event, context) => {
       return { raw: resp.data, provider: 'Adzuna' };
     };
 
-    // Helper: call Jooble REST API (assumptions: POST to https://jooble.org/api/ ; header X-Api-Key)
+    // Helper: call Jooble REST API (POST to https://jooble.org/api/{KEY})
     const callJooble = async () => {
       const JOOBLE_KEY = process.env.JOOBLE_API_KEY || '414dfc47-c407-40dc-b7eb-3b8bc956f659';
-      const endpoint = process.env.JOOBLE_ENDPOINT || 'https://jooble.org/api/';
+      const endpoint = `https://jooble.org/api/${JOOBLE_KEY}`;
       try {
         const body = {
           keywords: improvedQuery,
           location: searchLocation,
-          page: page,
-          size: 15
+          page: String(page)
         };
         console.log('📡 Calling Jooble:', endpoint, 'body:', body);
         const resp = await axios.post(endpoint, body, {
           headers: {
-            'Content-Type': 'application/json',
-            'X-Api-Key': JOOBLE_KEY
+            'Content-Type': 'application/json'
           },
           timeout: 10000
         });
         return { raw: resp.data, provider: 'Jooble' };
       } catch (err) {
         console.error('❌ Jooble call failed:', err && err.message);
-        return { raw: { jobs: [] , count: 0 }, provider: 'Jooble' };
+        return { raw: { jobs: [], totalCount: 0 }, provider: 'Jooble' };
       }
     };
 
@@ -273,6 +271,20 @@ exports.handler = async (event, context) => {
       const titleLower = job.title.toLowerCase();
       const descLower = (job.description || '').toLowerCase();
       
+      // For bursary/funding searches, be more lenient - accept if keyword appears anywhere
+      if (queryLower.includes('bursary') || queryLower.includes('scholarship') || 
+          queryLower.includes('learnership') || queryLower.includes('internship') ||
+          queryLower.includes('graduate program') || queryLower.includes('trainee')) {
+        const fundingKeywords = ['bursary', 'scholarship', 'learnership', 'internship', 'graduate', 'trainee', 'funding'];
+        const hasFundingMatch = fundingKeywords.some(keyword => 
+          titleLower.includes(keyword) || descLower.includes(keyword)
+        );
+        
+        if (hasFundingMatch) {
+          return true;
+        }
+      }
+      
       // For regular job searches, use lenient matching
       // Extract main search terms (remove OR, AND, parentheses, quotes)
       const mainTerms = queryLower
@@ -303,9 +315,9 @@ exports.handler = async (event, context) => {
       rawItems = (response && response.results) || [];
       totalCount = (response && response.count) || 0;
     } else if (provider === 'Jooble') {
-      // Jooble commonly returns {jobs: [...], total: N}
-      rawItems = response.jobs || response.results || [];
-      totalCount = response.total || response.count || rawItems.length;
+      // Jooble returns {jobs: [...], totalCount: N}
+      rawItems = response.jobs || [];
+      totalCount = response.totalCount || rawItems.length;
     } else if (provider === 'RapidJsearch') {
       // Rapid jsearch returns {data: [...], total: N} in many wrappers
       rawItems = response.data || response.results || [];
@@ -321,21 +333,52 @@ exports.handler = async (event, context) => {
     const mapped = rawItems.map((job, idx) => {
       // Try to normalize fields defensively
       const title = job.title || job.job_title || job.position || job.name || '';
-      const company = (job.company && (job.company.display_name || job.company.name)) || job.company || job.job_publisher || job.employer || '';
-      const locationField = job.location || job.location_name || job.job_location || job.city || '';
+      
+      // Handle company field carefully - could be object or string
+      let company = 'Unknown';
+      if (typeof job.company === 'string') {
+        company = job.company;
+      } else if (job.company && typeof job.company === 'object') {
+        company = job.company.display_name || job.company.name || 'Unknown';
+      } else if (job.job_publisher) {
+        company = job.job_publisher;
+      } else if (job.employer || job.employer_name) {
+        company = job.employer || job.employer_name;
+      }
+      
+      // Handle location field
+      let locationField = searchLocation;
+      if (typeof job.location === 'string') {
+        locationField = job.location;
+      } else if (job.location && typeof job.location === 'object') {
+        locationField = job.location.display_name || job.location.name || searchLocation;
+      } else if (job.location_name || job.job_location || job.city) {
+        locationField = job.location_name || job.job_location || job.city;
+      }
+      
       const description = job.description || job.snippet || job.job_description || job.summary || '';
       const url = job.redirect_url || job.url || job.link || job.apply_link || job.job_apply_link || '';
-      const created = job.created || job.posted || job.date || null;
+      const created = job.created || job.posted || job.date || new Date().toISOString();
       const id = job.id || job.job_id || job.jobKey || `${provider.toLowerCase()}-${idx}`;
+
+      // Handle salary field
+      let salaryText = 'Not specified';
+      if (job.salary) {
+        salaryText = job.salary;
+      } else if (job.salary_min && job.salary_max) {
+        salaryText = `R${job.salary_min.toLocaleString()} - R${job.salary_max.toLocaleString()}`;
+      } else if (job.salary_min) {
+        salaryText = `From R${job.salary_min.toLocaleString()}`;
+      }
 
       return {
         id: `${provider.toLowerCase()}-${id}`,
         title: title,
-        company: company || 'Unknown',
-        location: locationField || searchLocation,
+        company: company,
+        location: locationField,
         description: description,
         requirements: extractRequirements(description),
-        salary: job.salary || job.salary_min && job.salary_max ? `${job.salary_min || ''}-${job.salary_max || ''}` : 'Not specified',
+        salary: salaryText,
         url: url,
         created: created,
         posted: created,
@@ -355,8 +398,9 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         success: true,
         results: jobs,
-        total: response.data.count,
-        page: page
+        total: totalCount,
+        page: page,
+        provider: provider
       })
     };
 

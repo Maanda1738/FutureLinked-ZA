@@ -91,11 +91,7 @@ exports.handler = async (event, context) => {
     const improvedQuery = improveSearchQuery(query);
     console.log('Original query:', query, '-> Improved query:', improvedQuery);
 
-    // Call Adzuna API
-    const ADZUNA_APP_ID = process.env.ADZUNA_APP_ID || 'aea61773';
-    const ADZUNA_API_KEY = process.env.ADZUNA_API_KEY || '3e762a8402260d23f5d5115d9ba80c26';
-    
-    // Determine max_days_old based on search type
+  // Determine max_days_old based on search type
     // Bursaries/scholarships/graduate programs are typically open for longer periods
     const isBursarySearch = query.toLowerCase().includes('bursary') || 
                            query.toLowerCase().includes('scholarship') || 
@@ -112,22 +108,97 @@ exports.handler = async (event, context) => {
     // For bursary searches, make location less restrictive (use broader "south africa" instead of specific cities)
     const searchLocation = isBursarySearch ? 'south africa' : location;
     
-    // Fetch from Adzuna API
-    const adzunaParams = {
-      app_id: ADZUNA_APP_ID,
-      app_key: ADZUNA_API_KEY,
-      results_per_page: 15,
-      what: improvedQuery,
-      where: searchLocation,
-      max_days_old: maxDaysOld,
-      sort_by: 'date'
+    // For flexibility, allow choosing a provider via ?source=adzuna|jooble|rapid|careerjet
+    const source = (queryStringParameters?.source || 'adzuna').toLowerCase();
+
+    // Helper: call Adzuna
+    const callAdzuna = async () => {
+      const ADZUNA_APP_ID = process.env.ADZUNA_APP_ID || 'aea61773';
+      const ADZUNA_API_KEY = process.env.ADZUNA_API_KEY || '3e762a8402260d23f5d5115d9ba80c26';
+      const adzunaParams = {
+        app_id: ADZUNA_APP_ID,
+        app_key: ADZUNA_API_KEY,
+        results_per_page: 15,
+        what: improvedQuery,
+        where: searchLocation,
+        max_days_old: maxDaysOld,
+        sort_by: 'date'
+      };
+
+      console.log('📡 Calling Adzuna with params:', JSON.stringify(adzunaParams));
+      const resp = await axios.get(`https://api.adzuna.com/v1/api/jobs/za/search/${page}`, { params: adzunaParams });
+      return { raw: resp.data, provider: 'Adzuna' };
     };
 
-    console.log('📡 Calling Adzuna with params:', JSON.stringify(adzunaParams));
+    // Helper: call Jooble REST API (assumptions: POST to https://jooble.org/api/ ; header X-Api-Key)
+    const callJooble = async () => {
+      const JOOBLE_KEY = process.env.JOOBLE_API_KEY || '414dfc47-c407-40dc-b7eb-3b8bc956f659';
+      const endpoint = process.env.JOOBLE_ENDPOINT || 'https://jooble.org/api/';
+      try {
+        const body = {
+          keywords: improvedQuery,
+          location: searchLocation,
+          page: page,
+          size: 15
+        };
+        console.log('📡 Calling Jooble:', endpoint, 'body:', body);
+        const resp = await axios.post(endpoint, body, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Api-Key': JOOBLE_KEY
+          },
+          timeout: 10000
+        });
+        return { raw: resp.data, provider: 'Jooble' };
+      } catch (err) {
+        console.error('❌ Jooble call failed:', err && err.message);
+        return { raw: { jobs: [] , count: 0 }, provider: 'Jooble' };
+      }
+    };
 
-    const response = await axios.get(`https://api.adzuna.com/v1/api/jobs/za/search/${page}`, {
-      params: adzunaParams
-    });
+    // Helper: call RapidAPI jsearch (example from RapidAPI)
+    const callRapidJsearch = async () => {
+      const RAPID_KEY = process.env.RAPIDAPI_KEY || '9925807393msh164bd73c56850cep18f7c9jsn0c10b4650be6';
+      const host = 'jsearch.p.rapidapi.com';
+      const params = {
+        query: improvedQuery,
+        page: page,
+        num_pages: 1,
+        country: 'za',
+        date_posted: 'all'
+      };
+      try {
+        console.log('📡 Calling RapidAPI jsearch with params:', params);
+        const resp = await axios.get('https://jsearch.p.rapidapi.com/search', {
+          params,
+          headers: {
+            'x-rapidapi-host': host,
+            'x-rapidapi-key': RAPID_KEY
+          },
+          timeout: 10000
+        });
+        return { raw: resp.data, provider: 'RapidJsearch' };
+      } catch (err) {
+        console.error('❌ Rapid jsearch call failed:', err && err.message);
+        return { raw: { data: [], total: 0 }, provider: 'RapidJsearch' };
+      }
+    };
+
+    // Helper: placeholder for Careerjet (requires IP registration)
+    const callCareerjet = async () => {
+      const CAREERJET_KEY = process.env.CAREERJET_KEY || 'ad3cc98fd0afd9b05a68c956d9897c6a';
+      console.log('⚠️ Careerjet support requires server IP registration with Careerjet. Skipping unless configured.');
+      return { raw: { jobs: [], count: 0 }, provider: 'Careerjet' };
+    };
+
+    // Choose provider
+    let providerResponse;
+    if (source === 'jooble') providerResponse = await callJooble();
+    else if (source === 'rapid' || source === 'jsearch' || source === 'rapidapi') providerResponse = await callRapidJsearch();
+    else if (source === 'careerjet') providerResponse = await callCareerjet();
+    else providerResponse = await callAdzuna();
+
+    const response = providerResponse.raw;
 
     // Debug output: log counts and sample titles to help diagnose empty results
     try {
@@ -223,29 +294,60 @@ exports.handler = async (event, context) => {
       return hasMatch;
     };
 
-    // Process Adzuna results
-    const adzunaJobs = response.data.results.map(job => ({
-      id: `adzuna-${job.id}`,
-      title: job.title,
-      company: job.company.display_name,
-      location: job.location.display_name,
-      description: job.description,
-      requirements: extractRequirements(job.description),
-      salary: job.salary_min && job.salary_max 
-        ? `R${job.salary_min.toLocaleString()} - R${job.salary_max.toLocaleString()}`
-        : 'Not specified',
-      url: job.redirect_url,
-      created: job.created,
-      posted: job.created,
-      source: 'Adzuna'
-    }));
-    
+    // Normalize results from different providers into a common shape
+    const provider = providerResponse.provider || 'Adzuna';
+    let rawItems = [];
+    let totalCount = 0;
+
+    if (provider === 'Adzuna') {
+      rawItems = (response && response.results) || [];
+      totalCount = (response && response.count) || 0;
+    } else if (provider === 'Jooble') {
+      // Jooble commonly returns {jobs: [...], total: N}
+      rawItems = response.jobs || response.results || [];
+      totalCount = response.total || response.count || rawItems.length;
+    } else if (provider === 'RapidJsearch') {
+      // Rapid jsearch returns {data: [...], total: N} in many wrappers
+      rawItems = response.data || response.results || [];
+      totalCount = response.total || response.total_count || rawItems.length;
+    } else if (provider === 'Careerjet') {
+      rawItems = response.jobs || [];
+      totalCount = response.count || rawItems.length;
+    } else {
+      rawItems = response.results || response.data || [];
+      totalCount = response.count || response.total || rawItems.length;
+    }
+
+    const mapped = rawItems.map((job, idx) => {
+      // Try to normalize fields defensively
+      const title = job.title || job.job_title || job.position || job.name || '';
+      const company = (job.company && (job.company.display_name || job.company.name)) || job.company || job.job_publisher || job.employer || '';
+      const locationField = job.location || job.location_name || job.job_location || job.city || '';
+      const description = job.description || job.snippet || job.job_description || job.summary || '';
+      const url = job.redirect_url || job.url || job.link || job.apply_link || job.job_apply_link || '';
+      const created = job.created || job.posted || job.date || null;
+      const id = job.id || job.job_id || job.jobKey || `${provider.toLowerCase()}-${idx}`;
+
+      return {
+        id: `${provider.toLowerCase()}-${id}`,
+        title: title,
+        company: company || 'Unknown',
+        location: locationField || searchLocation,
+        description: description,
+        requirements: extractRequirements(description),
+        salary: job.salary || job.salary_min && job.salary_max ? `${job.salary_min || ''}-${job.salary_max || ''}` : 'Not specified',
+        url: url,
+        created: created,
+        posted: created,
+        source: provider
+      };
+    });
+
     // Apply relevance filter for all searches
-    const relevantJobs = adzunaJobs.filter(job => isJobRelevant(job, query));
-    console.log(`🎯 Filter: ${adzunaJobs.length} jobs → ${relevantJobs.length} relevant results`);
-    
-    const allJobs = relevantJobs;
-    const jobs = allJobs;
+    const relevantJobs = mapped.filter(job => isJobRelevant(job, query));
+    console.log(`🎯 Filter: ${mapped.length} jobs → ${relevantJobs.length} relevant results (provider: ${provider})`);
+
+    const jobs = relevantJobs;
 
     return {
       statusCode: 200,

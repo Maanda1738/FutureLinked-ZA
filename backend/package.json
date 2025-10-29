@@ -20,7 +20,8 @@
     "node-cache": "^5.1.2",
     "nodemailer": "^6.9.7",
     "puppeteer": "^21.5.0",
-    "serverless-http": "^3.2.0"
+    "serverless-http": "^3.2.0",
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "jest": "^29.7.0",

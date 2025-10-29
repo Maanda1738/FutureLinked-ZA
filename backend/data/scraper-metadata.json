@@ -1,0 +1,18 @@
+{
+  "timestamp": "2025-10-25T11:27:30.174Z",
+  "stats": {
+    "bursaries": {
+      "count": 1,
+      "success": true
+    },
+    "jobs": {
+      "count": 0,
+      "success": true
+    },
+    "learnerships": {
+      "count": 1,
+      "success": true
+    }
+  },
+  "errors": []
+}

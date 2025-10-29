@@ -1,0 +1,114 @@
+[
+  {
+    "id": "alfred-nzo-district-municipality-bursaries-2014-various-youthvillage-it",
+    "title": "Alfred Nzo District Municipality: Bursaries 2014",
+    "company": "Various IT Companies",
+    "location": "South Africa",
+    "description": "// <![CDATA[ var uri = 'http://imp.tradedoubler.com/imp?type(js)g(21441206)a(2327322)' + new String (Math.random()).substring (2, 11); document.write('<sc'+'ript type=\"text/javascript\" src=\"'+uri+'\" charset=\"ISO-8859-1\"></sc'+'ript>'); // ]]&gt;",
+    "type": "bursary",
+    "category": "IT & Technology",
+    "url": "https://youthvillage.co.za/",
+    "source": "Youth Village IT",
+    "posted": "2025-10-25T11:42:57.347Z",
+    "deadline": null,
+    "requirements": [
+      "IT or Computer Science field of study"
+    ],
+    "salary": "IT Bursary",
+    "created": "2025-10-25T11:42:57.347Z"
+  },
+  {
+    "id": "most-bursary-and-scholarship-applications-close-on-30-september-with-a-few-exceptions-noted-on-specific-bursary-pages-due-to-high-traffic-server-issues-may-occur-to-accommodate-this-applicants-will-have-one-extra-day-to-complete-their-applications-after-the-closing-date-various-studytrust-it",
+    "title": "Most bursary and scholarship applications close on 30 September, with a few exceptions noted on specific bursary pages. Due to high traffic, server issues may occur. To accommodate this, applicants will have one extra day to complete their applications after the closing date.",
+    "company": "Various IT Companies",
+    "location": "South Africa",
+    "description": "StudyTrust-administered Bursaries and Scholarships",
+    "type": "bursary",
+    "category": "IT & Technology",
+    "url": "https://www.studytrust.org.za/amazon-recruitment-bursaries/",
+    "source": "Study Trust IT",
+    "posted": "2025-10-25T11:42:58.047Z",
+    "deadline": null,
+    "requirements": [
+      "IT or related field"
+    ],
+    "salary": "IT Bursary",
+    "created": "2025-10-25T11:42:58.047Z"
+  },
+  {
+    "id": "internships-sita-gov-it",
+    "title": "SITA Internships",
+    "company": "SITA - State Information Technology Agency",
+    "location": "South Africa (National)",
+    "description": "Government IT bursary/learnership from SITA",
+    "type": "bursary",
+    "category": "IT & Technology",
+    "url": "https://www.sita.co.za/internships",
+    "source": "SITA (Government)",
+    "posted": "2025-10-25T11:43:20.616Z",
+    "deadline": null,
+    "requirements": [
+      "South African citizen",
+      "IT/Computer Science field"
+    ],
+    "salary": "Government IT Bursary",
+    "created": "2025-10-25T11:43:20.616Z"
+  },
+  {
+    "id": "bursary-2024-sita-gov-it",
+    "title": "SITA Bursary 2024",
+    "company": "SITA - State Information Technology Agency",
+    "location": "South Africa (National)",
+    "description": "Government IT bursary/learnership from SITA",
+    "type": "bursary",
+    "category": "IT & Technology",
+    "url": "https://www.sita.co.za/sites/default/files/EXTERNAL%20BURSARY%20ADVERT%20%282024%20ACADEMIC%20YEAR%29%202024.pdf",
+    "source": "SITA (Government)",
+    "posted": "2025-10-25T11:43:20.616Z",
+    "deadline": null,
+    "requirements": [
+      "South African citizen",
+      "IT/Computer Science field"
+    ],
+    "salary": "Government IT Bursary",
+    "created": "2025-10-25T11:43:20.616Z"
+  },
+  {
+    "id": "internships-sita-gov-it",
+    "title": "SITA Internships",
+    "company": "SITA - State Information Technology Agency",
+    "location": "South Africa (National)",
+    "description": "Government IT bursary/learnership from SITA",
+    "type": "bursary",
+    "category": "IT & Technology",
+    "url": "https://www.sita.co.za/internships",
+    "source": "SITA (Government)",
+    "posted": "2025-10-25T11:43:20.619Z",
+    "deadline": null,
+    "requirements": [
+      "South African citizen",
+      "IT/Computer Science field"
+    ],
+    "salary": "Government IT Bursary",
+    "created": "2025-10-25T11:43:20.619Z"
+  },
+  {
+    "id": "bursary-2024-sita-gov-it",
+    "title": "SITA Bursary 2024",
+    "company": "SITA - State Information Technology Agency",
+    "location": "South Africa (National)",
+    "description": "Government IT bursary/learnership from SITA",
+    "type": "bursary",
+    "category": "IT & Technology",
+    "url": "https://forms.office.com/r/wEJn25DgeF",
+    "source": "SITA (Government)",
+    "posted": "2025-10-25T11:43:20.619Z",
+    "deadline": null,
+    "requirements": [
+      "South African citizen",
+      "IT/Computer Science field"
+    ],
+    "salary": "Government IT Bursary",
+    "created": "2025-10-25T11:43:20.619Z"
+  }
+]

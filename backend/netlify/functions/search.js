@@ -101,7 +101,7 @@ exports.handler = async (event, context) => {
                            query.toLowerCase().includes('graduate programme') ||
                            query.toLowerCase().includes('internship') ||
                            query.toLowerCase().includes('trainee');
-    const maxDaysOld = isBursarySearch ? 90 : 7;  // 90 days for bursaries/programs (they stay open longer), 7 days for jobs
+    const maxDaysOld = isBursarySearch ? 90 : 30;  // 90 days for bursaries/programs, 30 days for regular jobs
     
     console.log(`🔍 Search type: ${isBursarySearch ? 'BURSARY/FUNDING' : 'REGULAR JOB'} (max_days_old: ${maxDaysOld})`);
     
@@ -189,11 +189,96 @@ exports.handler = async (event, context) => {
       return { raw: { jobs: [], count: 0 }, provider: 'Careerjet' };
     };
 
+    // Helper: call Google Custom Search JSON API
+    const callGoogleSearch = async () => {
+      const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+      const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID || '025daad35782144af';
+      
+      if (!GOOGLE_API_KEY) {
+        console.log('⚠️ Google API key not configured. Skipping Google Search.');
+        return { raw: { items: [], searchInformation: { totalResults: 0 } }, provider: 'Google' };
+      }
+      
+      try {
+        const searchQuery = `${improvedQuery} jobs site:linkedin.com OR site:careers24.com OR site:pnet.co.za`;
+        console.log('📡 Calling Google Custom Search API with query:', searchQuery);
+        
+        const resp = await axios.get('https://www.googleapis.com/customsearch/v1', {
+          params: {
+            key: GOOGLE_API_KEY,
+            cx: GOOGLE_CSE_ID,
+            q: searchQuery,
+            num: 10,
+            gl: 'za',
+            cr: 'countryZA'
+          },
+          timeout: 10000
+        });
+        
+        console.log(`✅ Google: Found ${(resp.data.items || []).length} results`);
+        return { raw: resp.data, provider: 'Google' };
+      } catch (err) {
+        console.error('❌ Google Search call failed:', err && err.message);
+        return { raw: { items: [], searchInformation: { totalResults: 0 } }, provider: 'Google' };
+      }
+    };
+
     // Choose provider
     let providerResponse;
     if (source === 'jooble') providerResponse = await callJooble();
     else if (source === 'rapid' || source === 'jsearch' || source === 'rapidapi') providerResponse = await callRapidJsearch();
     else if (source === 'careerjet') providerResponse = await callCareerjet();
+    else if (source === 'google') providerResponse = await callGoogleSearch();
+    else if (source === 'all') {
+      // Call ALL providers in parallel for comprehensive results
+      console.log('🚀 Calling ALL providers in parallel...');
+      const [adzunaResp, joobleResp, rapidResp, googleResp] = await Promise.allSettled([
+        callAdzuna(),
+        callJooble(),
+        callRapidJsearch(),
+        callGoogleSearch()
+      ]);
+      
+      // Combine all successful results
+      const allResults = [];
+      let combinedTotal = 0;
+      
+      if (adzunaResp.status === 'fulfilled' && adzunaResp.value.raw) {
+        const items = adzunaResp.value.raw.results || [];
+        console.log(`✅ Adzuna: ${items.length} results`);
+        allResults.push(...items.map(job => ({...job, _provider: 'Adzuna', _raw: adzunaResp.value.raw})));
+        combinedTotal += adzunaResp.value.raw.count || items.length;
+      }
+      
+      if (joobleResp.status === 'fulfilled' && joobleResp.value.raw) {
+        const items = joobleResp.value.raw.jobs || [];
+        console.log(`✅ Jooble: ${items.length} results`);
+        allResults.push(...items.map(job => ({...job, _provider: 'Jooble', _raw: joobleResp.value.raw})));
+        combinedTotal += joobleResp.value.raw.totalCount || items.length;
+      }
+      
+      if (rapidResp.status === 'fulfilled' && rapidResp.value.raw) {
+        const items = rapidResp.value.raw.data || [];
+        console.log(`✅ RapidAPI: ${items.length} results`);
+        allResults.push(...items.map(job => ({...job, _provider: 'RapidJsearch', _raw: rapidResp.value.raw})));
+        combinedTotal += rapidResp.value.raw.total || items.length;
+      }
+      
+      if (googleResp.status === 'fulfilled' && googleResp.value.raw) {
+        const items = googleResp.value.raw.items || [];
+        console.log(`✅ Google: ${items.length} results`);
+        allResults.push(...items.map(job => ({...job, _provider: 'Google', _raw: googleResp.value.raw})));
+        combinedTotal += parseInt(googleResp.value.raw.searchInformation?.totalResults || items.length);
+      }
+      
+      console.log(`📊 Combined: ${allResults.length} total results from all providers`);
+      
+      // Create a combined response
+      providerResponse = {
+        raw: { results: allResults, count: combinedTotal },
+        provider: 'Combined (All Sources)'
+      };
+    }
     else providerResponse = await callAdzuna();
 
     const response = providerResponse.raw;
@@ -311,7 +396,13 @@ exports.handler = async (event, context) => {
     let rawItems = [];
     let totalCount = 0;
 
-    if (provider === 'Adzuna') {
+    if (provider === 'Combined (All Sources)') {
+      // Handle combined results from multiple providers
+      rawItems = response.results || [];
+      totalCount = response.count || rawItems.length;
+      
+      // Each item already has _provider tag, we'll use it during mapping
+    } else if (provider === 'Adzuna') {
       rawItems = (response && response.results) || [];
       totalCount = (response && response.count) || 0;
     } else if (provider === 'Jooble') {
@@ -325,12 +416,19 @@ exports.handler = async (event, context) => {
     } else if (provider === 'Careerjet') {
       rawItems = response.jobs || [];
       totalCount = response.count || rawItems.length;
+    } else if (provider === 'Google') {
+      // Google Custom Search returns {items: [...], searchInformation: { totalResults: "123" }}
+      rawItems = response.items || [];
+      totalCount = parseInt(response.searchInformation?.totalResults || rawItems.length);
     } else {
       rawItems = response.results || response.data || [];
       totalCount = response.count || response.total || rawItems.length;
     }
 
     const mapped = rawItems.map((job, idx) => {
+      // For combined results, use the _provider tag if available
+      const itemProvider = job._provider || provider;
+      
       // Try to normalize fields defensively
       const title = job.title || job.job_title || job.position || job.name || '';
       
@@ -359,7 +457,7 @@ exports.handler = async (event, context) => {
       const description = job.description || job.snippet || job.job_description || job.summary || '';
       const url = job.redirect_url || job.url || job.link || job.apply_link || job.job_apply_link || '';
       const created = job.created || job.posted || job.date || new Date().toISOString();
-      const id = job.id || job.job_id || job.jobKey || `${provider.toLowerCase()}-${idx}`;
+      const id = job.id || job.job_id || job.jobKey || `${itemProvider.toLowerCase()}-${idx}`;
 
       // Handle salary field
       let salaryText = 'Not specified';
@@ -372,7 +470,7 @@ exports.handler = async (event, context) => {
       }
 
       return {
-        id: `${provider.toLowerCase()}-${id}`,
+        id: `${itemProvider.toLowerCase()}-${id}`,
         title: title,
         company: company,
         location: locationField,
@@ -382,15 +480,45 @@ exports.handler = async (event, context) => {
         url: url,
         created: created,
         posted: created,
-        source: provider
+        source: itemProvider
       };
     });
 
-    // Apply relevance filter for all searches
-    const relevantJobs = mapped.filter(job => isJobRelevant(job, query));
-    console.log(`🎯 Filter: ${mapped.length} jobs → ${relevantJobs.length} relevant results (provider: ${provider})`);
+    // Filter out old jobs (older than 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const recentJobs = mapped.filter(job => {
+      try {
+        const jobDate = new Date(job.created || job.posted);
+        // Filter out invalid dates and jobs older than 30 days
+        if (isNaN(jobDate.getTime())) return true; // Keep if date is invalid (better than losing results)
+        
+        const isRecent = jobDate >= thirtyDaysAgo;
+        if (!isRecent) {
+          console.log(`📅 Filtering out old job: "${job.title}" from ${jobDate.toISOString().split('T')[0]} (${job.source})`);
+        }
+        return isRecent;
+      } catch (e) {
+        return true; // Keep if error parsing date
+      }
+    });
+    
+    console.log(`📅 Date filter: ${mapped.length} jobs → ${recentJobs.length} recent jobs (last 30 days)`);
+    if (mapped.length > recentJobs.length) {
+      console.log(`🗑️  Removed ${mapped.length - recentJobs.length} old jobs`);
+    }
 
-    const jobs = relevantJobs;
+    // Apply relevance filter for all searches
+    const relevantJobs = recentJobs.filter(job => isJobRelevant(job, query));
+    console.log(`🎯 Relevance filter: ${recentJobs.length} jobs → ${relevantJobs.length} relevant results (provider: ${provider})`);
+
+    // For multi-provider "all" searches, be more lenient - if we have very few results after filtering, use all
+    let jobs = relevantJobs;
+    if (provider === 'Combined (All Sources)' && relevantJobs.length < 5 && recentJobs.length > 10) {
+      console.log(`⚠️ Multi-provider filter too strict (${relevantJobs.length}/${recentJobs.length}). Using all recent results for better coverage.`);
+      jobs = recentJobs;
+    }
 
     return {
       statusCode: 200,

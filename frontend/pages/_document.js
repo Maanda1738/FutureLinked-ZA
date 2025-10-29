@@ -44,6 +44,12 @@ export default function Document() {
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5675694305993193"
           crossOrigin="anonymous"
         />
+        
+        {/* Google Custom Search Engine */}
+        <script 
+          async 
+          src="https://cse.google.com/cse.js?cx=025daad35782144af"
+        />
       </Head>
       <body>
         <Main />

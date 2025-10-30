@@ -135,10 +135,16 @@ exports.handler = async (event, context) => {
       const JOOBLE_KEY = process.env.JOOBLE_API_KEY || '414dfc47-c407-40dc-b7eb-3b8bc956f659';
       const endpoint = `https://jooble.org/api/${JOOBLE_KEY}`;
       try {
+        // Jooble needs location + country code for better filtering
+        const joobleLocation = searchLocation.toLowerCase().includes('south africa') 
+          ? searchLocation 
+          : `${searchLocation}, South Africa`;
+        
         const body = {
           keywords: improvedQuery,
-          location: searchLocation,
-          page: String(page)
+          location: joobleLocation,
+          page: String(page),
+          searchMode: 1 // Strict mode for better location matching
         };
         console.log('📡 Calling Jooble:', endpoint, 'body:', body);
         const resp = await axios.post(endpoint, body, {
@@ -488,11 +494,46 @@ exports.handler = async (event, context) => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
+    // Filter out non-South African jobs and old jobs
     const recentJobs = mapped.filter(job => {
+      // Location filter - must contain South African location keywords
+      const locationLower = (job.location || '').toLowerCase();
+      const southAfricanKeywords = [
+        'south africa', 'johannesburg', 'cape town', 'durban', 'pretoria', 
+        'port elizabeth', 'bloemfontein', 'kimberley', 'polokwane', 'nelspruit',
+        'gauteng', 'western cape', 'kwazulu', 'eastern cape', 'free state',
+        'limpopo', 'mpumalanga', 'north west', 'northern cape', 'sandton',
+        'centurion', 'midrand', 'rosebank', 'bellville', 'stellenbosch',
+        'pietermaritzburg', 'george', 'knysna', 'paarl', 'somerset west', 'za'
+      ];
+      
+      const hasInternationalLocation = 
+        locationLower.includes('united states') || 
+        locationLower.includes('united kingdom') ||
+        locationLower.includes('uk') ||
+        locationLower.includes('usa') ||
+        locationLower.includes('canada') ||
+        locationLower.includes('australia') ||
+        locationLower.includes('india') ||
+        locationLower.includes('germany') ||
+        locationLower.includes('france') ||
+        locationLower.match(/\b(pa|ca|ny|tx|fl|wa)\b/) && !locationLower.includes('south africa'); // US state codes
+      
+      if (hasInternationalLocation) {
+        console.log(`🌍 Filtering out international job: "${job.title}" - ${job.location} (${job.source})`);
+        return false;
+      }
+      
+      const isSouthAfrican = southAfricanKeywords.some(keyword => locationLower.includes(keyword));
+      if (!isSouthAfrican && locationLower.length > 0) {
+        console.log(`🌍 Filtering out non-SA job: "${job.title}" - ${job.location} (${job.source})`);
+        return false;
+      }
+      
+      // Date filter
       try {
         const jobDate = new Date(job.created || job.posted);
-        // Filter out invalid dates and jobs older than 30 days
-        if (isNaN(jobDate.getTime())) return true; // Keep if date is invalid (better than losing results)
+        if (isNaN(jobDate.getTime())) return true; // Keep if date is invalid
         
         const isRecent = jobDate >= thirtyDaysAgo;
         if (!isRecent) {
@@ -504,9 +545,9 @@ exports.handler = async (event, context) => {
       }
     });
     
-    console.log(`📅 Date filter: ${mapped.length} jobs → ${recentJobs.length} recent jobs (last 30 days)`);
+    console.log(`🌍📅 Location & Date filter: ${mapped.length} jobs → ${recentJobs.length} South African recent jobs`);
     if (mapped.length > recentJobs.length) {
-      console.log(`🗑️  Removed ${mapped.length - recentJobs.length} old jobs`);
+      console.log(`🗑️  Removed ${mapped.length - recentJobs.length} jobs (non-SA or old)`);
     }
 
     // Apply relevance filter for all searches

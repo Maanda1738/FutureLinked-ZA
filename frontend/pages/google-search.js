@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import Head from 'next/head';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -7,16 +6,6 @@ import { usePageTracking } from '../utils/analytics';
 
 export default function GoogleSearchPage() {
   usePageTracking();
-
-  useEffect(() => {
-    // Ensure Google CSE loads properly
-    if (window.google && window.google.search) {
-      window.google.search.cse.element.render({
-        div: "gcse-search",
-        tag: 'search'
-      });
-    }
-  }, []);
 
   return (
     <>

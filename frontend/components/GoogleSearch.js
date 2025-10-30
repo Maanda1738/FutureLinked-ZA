@@ -3,7 +3,39 @@
  * Displays a Google-powered search box on your site
  */
 
+import { useEffect } from 'react';
+
 export default function GoogleSearch({ className = '' }) {
+  useEffect(() => {
+    // Load Google Custom Search script if not already loaded
+    const loadGoogleCSE = () => {
+      if (window.__gcse) {
+        // Already loaded
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://cse.google.com/cse.js?cx=025daad35782144af';
+      script.async = true;
+      document.head.appendChild(script);
+
+      script.onload = () => {
+        console.log('✅ Google Custom Search loaded');
+      };
+
+      script.onerror = () => {
+        console.error('❌ Failed to load Google Custom Search');
+      };
+    };
+
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      loadGoogleCSE();
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className={`google-search-container ${className}`}>
       <div className="gcse-search"></div>
@@ -47,6 +79,25 @@ export default function GoogleSearch({ className = '' }) {
         .google-search-container :global(.gsc-search-button:hover) {
           transform: translateY(-1px);
           box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        /* Results styling */
+        .google-search-container :global(.gsc-results) {
+          margin-top: 20px;
+        }
+        
+        .google-search-container :global(.gsc-webResult) {
+          padding: 16px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          margin-bottom: 12px;
+          background: white;
+          transition: all 0.2s;
+        }
+        
+        .google-search-container :global(.gsc-webResult:hover) {
+          border-color: #667eea;
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
         }
       `}</style>
     </div>

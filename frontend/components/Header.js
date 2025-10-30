@@ -35,9 +35,6 @@ export default function Header() {
             <Link href="/" className="text-gray-600 hover:text-primary-600 transition-colors">
               Home
             </Link>
-            <Link href="/google-search" className="text-gray-600 hover:text-primary-600 transition-colors">
-              Web Search
-            </Link>
             <Link href="/saved-jobs" className="relative text-gray-600 hover:text-primary-600 transition-colors flex items-center gap-1">
               <Heart className="h-4 w-4" />
               Saved Jobs
@@ -78,13 +75,6 @@ export default function Header() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 🏠 Home
-              </Link>
-              <Link 
-                href="/google-search" 
-                className="text-gray-600 hover:text-primary-600 transition-colors py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                🔍 Web Search
               </Link>
               <Link 
                 href="/saved-jobs" 

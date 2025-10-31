@@ -252,9 +252,28 @@ exports.handler = async (event, context) => {
       
       if (joobleResp.status === 'fulfilled' && joobleResp.value.raw) {
         const items = joobleResp.value.raw.jobs || [];
-        console.log(`✅ Jooble: ${items.length} results`);
-        allResults.push(...items.map(job => ({...job, _provider: 'Jooble', _raw: joobleResp.value.raw})));
-        combinedTotal += joobleResp.value.raw.totalCount || items.length;
+        // Filter Jooble items to South African locations only
+        const saKeywords = [
+          'south africa','south-africa','za','johannesburg','cape town','cape-town','pretoria','durban',
+          'gauteng','western cape','kwazulu','eastern cape','free state','limpopo','mpumalanga','north west',
+          'northern cape','port elizabeth','nelson mandela bay','bloemfontein','pietermaritzburg','sandton',
+          'centurion','midrand','rosebank','stellenbosch','pinetown','stellenbosch'
+        ];
+
+        const isSA = job => {
+          const loc = ((job.location || job.location_name || job.city || job.region || job.country) + '').toLowerCase();
+          if (!loc || loc.trim().length === 0) return false;
+          return saKeywords.some(k => loc.includes(k));
+        };
+
+        const itemsSA = items.filter(isSA);
+        console.log(`✅ Jooble: ${items.length} results (raw), ${itemsSA.length} South Africa matches`);
+        if (itemsSA.length === 0) {
+          console.log('⚠️ Jooble returned 0 South Africa matches for this query');
+        }
+        // Only include South African Jooble matches
+        allResults.push(...itemsSA.map(job => ({...job, _provider: 'Jooble', _raw: joobleResp.value.raw})));
+        combinedTotal += itemsSA.length;
       }
       
       if (rapidResp.status === 'fulfilled' && rapidResp.value.raw) {
@@ -266,9 +285,21 @@ exports.handler = async (event, context) => {
       
       if (googleResp.status === 'fulfilled' && googleResp.value.raw) {
         const items = googleResp.value.raw.items || [];
-        console.log(`✅ Google: ${items.length} results`);
-        allResults.push(...items.map(job => ({...job, _provider: 'Google', _raw: googleResp.value.raw})));
-        combinedTotal += parseInt(googleResp.value.raw.searchInformation?.totalResults || items.length);
+        if ((items || []).length === 0) {
+          console.log('⚠️ Google returned 0 items for this query');
+        } else {
+          console.log(`✅ Google: ${items.length} results`);
+        }
+        // Normalize Google items into a similar shape when combining
+        const normalizedGoogle = (items || []).map(g => ({
+          title: g.title || g.htmlTitle || '',
+          link: g.link || g.formattedUrl || '',
+          snippet: g.snippet || g.htmlSnippet || '',
+          location: 'south africa', // best-effort - user can infer from snippet/link
+          source: 'Google'
+        }));
+        allResults.push(...normalizedGoogle.map(job => ({...job, _provider: 'Google', _raw: googleResp.value.raw})));
+        combinedTotal += normalizedGoogle.length;
       }
       
       console.log(`📊 Combined: ${allResults.length} total results from all providers`);
@@ -407,8 +438,23 @@ exports.handler = async (event, context) => {
       totalCount = (response && response.count) || 0;
     } else if (provider === 'Jooble') {
       // Jooble returns {jobs: [...], totalCount: N}
-      rawItems = response.jobs || [];
-      totalCount = response.totalCount || rawItems.length;
+      const allJooble = response.jobs || [];
+      // Filter Jooble results to South African locations when serving Jooble-only requests
+      const saKeywords = [
+        'south africa','south-africa','za','johannesburg','cape town','cape-town','pretoria','durban',
+        'gauteng','western cape','kwazulu','eastern cape','free state','limpopo','mpumalanga','north west',
+        'northern cape','port elizabeth','nelson mandela bay','bloemfontein','pietermaritzburg','sandton',
+        'centurion','midrand','rosebank','stellenbosch','pinetown'
+      ];
+      const isSA = job => {
+        const loc = ((job.location || job.location_name || job.city || job.region || job.country) + '').toLowerCase();
+        if (!loc || loc.trim().length === 0) return false;
+        return saKeywords.some(k => loc.includes(k));
+      };
+  const joobleSA = allJooble.filter(isSA);
+  // Only return South African Jooble results when Jooble is the selected provider
+  rawItems = joobleSA; // may be empty if no SA matches
+  totalCount = (rawItems && rawItems.length) || 0;
     } else if (provider === 'RapidJsearch') {
       // Rapid jsearch returns {data: [...], total: N} in many wrappers
       rawItems = response.data || response.results || [];

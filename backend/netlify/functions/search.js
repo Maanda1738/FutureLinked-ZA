@@ -200,8 +200,27 @@ exports.handler = async (event, context) => {
       }
       
       try {
-        const searchQuery = `${improvedQuery} jobs site:linkedin.com OR site:careers24.com OR site:pnet.co.za`;
-        console.log('📡 Calling Google Custom Search API with query:', searchQuery);
+        // Search across comprehensive South African job sites including general portals, graduate programs, bursaries, and government sites
+        const jobSites = [
+          // Major job portals
+          'careers24.com', 'jobmail.co.za', 'pnet.co.za', 'careerjunction.co.za', 'adzuna.co.za',
+          'linkedin.com', 'indeed.co.za', 'careerjet.co.za', 'jobvine.co.za', 'jobin.co.za',
+          'bestjobs.co.za', 'za.jobrapido.com', 'jobseekerssa.co.za', 'jobmonster.co.za', 'careersportal.co.za',
+          // Graduate & internship opportunities
+          'studentroom.co.za', 'zabursaries.co.za', 'internships-sa.co.za', 'afterskul.com',
+          'youthvillage.co.za', 'youthopportunitieshub.com', 'studentjobs.co.za', 'graduates24.com',
+          'interns24.co.za', 'joblisted.co.za', 'jobupdates.co.za',
+          // Bursaries & scholarships
+          'bursariesportal.co.za', 'bursaries-southafrica.co.za', 'onlinebursaries.co.za', 'bursariescorner.co.za',
+          // Universities (for graduate programs & internships)
+          'unisa.ac.za', 'wits.ac.za', 'up.ac.za', 'uct.ac.za', 'ukzn.ac.za', 'nwu.ac.za',
+          // Government & public sector
+          'gov.za', 'dpsa.gov.za', 'careers.gov.za'
+        ];
+        
+        const siteQuery = jobSites.map(site => `site:${site}`).join(' OR ');
+        const searchQuery = `${improvedQuery} (${siteQuery})`;
+        console.log('📡 Calling Google Custom Search API searching across', jobSites.length, 'SA job sites');
         
         const resp = await axios.get('https://www.googleapis.com/customsearch/v1', {
           params: {

@@ -147,8 +147,8 @@ export default function Blog() {
 
                   {/* Action Buttons */}
                   <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                    <div className="text-sm text-gray-600">
-                      Coming soon...
+                    <div className="text-sm font-medium text-gray-700">
+                      Share this article:
                     </div>
 
                     <div className="flex gap-2">

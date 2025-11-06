@@ -62,6 +62,62 @@ export const logAdClick = (adType, placement) => {
   });
 };
 
+// Log template downloads
+export const logTemplateDownload = (templateType) => {
+  logEvent({
+    action: 'download_template',
+    category: 'engagement',
+    label: templateType,
+    value: 1,
+  });
+};
+
+// Log job saves
+export const logJobSave = (jobTitle, company) => {
+  logEvent({
+    action: 'save_job',
+    category: 'engagement',
+    label: `${jobTitle} - ${company}`,
+  });
+};
+
+// Log social shares
+export const logShare = (contentType, contentTitle, platform) => {
+  logEvent({
+    action: 'share',
+    category: 'engagement',
+    label: `${contentType}: ${contentTitle} via ${platform}`,
+  });
+};
+
+// Log blog post views
+export const logBlogView = (postSlug, postTitle, category) => {
+  logEvent({
+    action: 'view_blog_post',
+    category: 'content',
+    label: `${category}: ${postTitle}`,
+  });
+};
+
+// Log email signups
+export const logEmailSignup = (source) => {
+  logEvent({
+    action: 'email_signup',
+    category: 'conversion',
+    label: source,
+    value: 2,
+  });
+};
+
+// Log social media clicks
+export const logSocialClick = (platform, action) => {
+  logEvent({
+    action: 'social_click',
+    category: 'engagement',
+    label: `${platform} - ${action}`,
+  });
+};
+
 // Hook for page tracking
 export const usePageTracking = () => {
   const router = useRouter();

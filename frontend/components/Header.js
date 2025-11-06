@@ -35,6 +35,9 @@ export default function Header() {
             <Link href="/" className="text-gray-600 hover:text-primary-600 transition-colors">
               Home
             </Link>
+            <Link href="/blog" className="text-gray-600 hover:text-primary-600 transition-colors">
+              Blog
+            </Link>
             <Link href="/saved-jobs" className="relative text-gray-600 hover:text-primary-600 transition-colors flex items-center gap-1">
               <Heart className="h-4 w-4" />
               Saved Jobs
@@ -45,7 +48,7 @@ export default function Header() {
               )}
             </Link>
             <Link href="/resources" className="text-gray-600 hover:text-primary-600 transition-colors">
-              Career Tips
+              Resources
             </Link>
             <Link href="/about" className="text-gray-600 hover:text-primary-600 transition-colors">
               About
@@ -77,6 +80,13 @@ export default function Header() {
                 🏠 Home
               </Link>
               <Link 
+                href="/blog" 
+                className="text-gray-600 hover:text-primary-600 transition-colors py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                📰 Blog
+              </Link>
+              <Link 
                 href="/saved-jobs" 
                 className="relative text-gray-600 hover:text-primary-600 transition-colors flex items-center gap-2 py-2"
                 onClick={() => setMobileMenuOpen(false)}
@@ -94,7 +104,7 @@ export default function Header() {
                 className="text-gray-600 hover:text-primary-600 transition-colors py-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                📚 Career Tips
+                📚 Resources
               </Link>
               <Link 
                 href="/about" 

@@ -1,5 +1,6 @@
-import { ExternalLink, MapPin, Calendar, Building, Loader, ChevronDown, Star, Heart } from 'lucide-react';
+import { ExternalLink, MapPin, Calendar, Building, Loader, ChevronDown, Star, Heart, MessageCircle } from 'lucide-react';
 import { useSavedJobs } from '../context/SavedJobsContext';
+import { logShare } from '../utils/analytics';
 
 export default function SearchResults({ results, loading, loadingMore, query, totalResults, currentCount, onLoadMore }) {
   if (loading) {
@@ -348,6 +349,21 @@ function JobCard({ job }) {
         </div>
         
         <div className="flex items-center gap-2 flex-wrap">
+          {/* WhatsApp Share Button */}
+          <button
+            onClick={() => {
+              const message = `🔥 Check out this job opportunity!\n\n${job.title}\n${job.company ? `at ${job.company}` : ''}\n${job.location || 'South Africa'}\n\nApply here: ${job.url}\n\nFound on FutureLinked ZA 🇿🇦`;
+              const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+              window.open(whatsappUrl, '_blank');
+              logShare('job', job.title, 'whatsapp');
+            }}
+            className="inline-flex items-center gap-1 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors font-medium"
+            title="Share on WhatsApp"
+          >
+            <MessageCircle className="h-4 w-4" />
+            <span className="hidden sm:inline">Share</span>
+          </button>
+
           {/* Save Button */}
           <button
             onClick={handleSaveToggle}

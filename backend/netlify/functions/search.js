@@ -309,14 +309,79 @@ exports.handler = async (event, context) => {
         } else {
           console.log(`✅ Google: ${items.length} results`);
         }
-        // Normalize Google items into a similar shape when combining
-        const normalizedGoogle = (items || []).map(g => ({
-          title: g.title || g.htmlTitle || '',
-          link: g.link || g.formattedUrl || '',
-          snippet: g.snippet || g.htmlSnippet || '',
-          location: 'south africa', // best-effort - user can infer from snippet/link
-          source: 'Google'
-        }));
+        // Normalize Google items into individual job postings
+        const normalizedGoogle = (items || []).map(g => {
+          // Extract job title from the page title (remove site name suffixes)
+          let jobTitle = (g.title || g.htmlTitle || '')
+            .replace(/\s*\|\s*Pnet$/i, '')
+            .replace(/\s*-\s*Careers24$/i, '')
+            .replace(/\s*\|\s*JobMail$/i, '')
+            .replace(/\s*-\s*LinkedIn$/i, '')
+            .replace(/\s*\|\s*Indeed\.co\.za$/i, '')
+            .replace(/\s*\|\s*CareerJunction$/i, '')
+            .replace(/\s*-\s*Students Room$/i, '')
+            .replace(/\s*Jobs?,?\s+Employment\s+in\s+.+$/i, '') // Remove "Jobs, Employment in Location"
+            .replace(/\s*Jobs in .+$/i, '') // Remove "Jobs in Location" suffix
+            .replace(/^\d+\+?\s*/, '') // Remove leading numbers like "100+ "
+            .replace(/\s*jobs?$/i, '') // Remove trailing "jobs"
+            .replace(/\s*-\s*Indeed.*$/i, '') // Remove "- Indeed South Africa"
+            .trim();
+          
+          // Extract location from snippet or URL
+          let location = 'South Africa';
+          const locationMatch = (g.snippet || '').match(/(Johannesburg|Cape Town|Durban|Pretoria|Port Elizabeth|Bloemfontein|Gauteng|Western Cape|KwaZulu|Eastern Cape|Nelson Mandela Bay)/i);
+          if (locationMatch) {
+            location = locationMatch[1];
+          }
+          
+          // Extract company from snippet if possible (look for common patterns)
+          let company = 'See Job Details';
+          // Pattern 1: "Company Name is hiring"
+          let companyMatch = (g.snippet || '').match(/([A-Z][A-Za-z0-9\s&\.]+?)\s+is\s+hiring/i);
+          if (!companyMatch) {
+            // Pattern 2: "at Company Name"
+            companyMatch = (g.snippet || '').match(/\bat\s+([A-Z][A-Za-z0-9\s&\.]{2,30}?)(?:\s*·|\s*-|\s*\.|$)/);
+          }
+          if (!companyMatch) {
+            // Pattern 3: "by Company Name"
+            companyMatch = (g.snippet || '').match(/\bby\s+([A-Z][A-Za-z0-9\s&\.]{2,30}?)(?:\s*·|\s*-|\s*\.|$)/);
+          }
+          if (companyMatch) {
+            company = companyMatch[1].trim().replace(/\s+$/, '');
+          }
+          
+          // Clean up snippet - remove "Jump to" and other navigation text
+          let description = (g.snippet || g.htmlSnippet || '')
+            .replace(/Jump to.+?·/gi, '')
+            .replace(/\s*·\s*\d+\+?\s*(active )?(job|position|opening)s?/gi, '')
+            .replace(/\d+\s+results?\s+for\s+.+/gi, '')
+            .trim();
+          
+          return {
+            title: jobTitle,
+            link: g.link || g.formattedUrl || '',
+            snippet: description,
+            description: description,
+            company: company,
+            location: location,
+            source: 'Google',
+            created: new Date().toISOString() // Google doesn't provide dates, use current
+          };
+        }).filter(job => {
+          // Filter out aggregated search pages (they usually have very generic titles)
+          const isAggregatedPage = 
+            job.title.toLowerCase().includes('jobs in') ||
+            job.title.toLowerCase().includes('job search') ||
+            /^\d+\s*(results?|jobs?|opportunities)/i.test(job.title) ||
+            job.title.length < 10; // Too short to be a real job title
+          
+          if (isAggregatedPage) {
+            console.log(`🚫 Filtering out aggregated page: "${job.title}"`);
+          }
+          return !isAggregatedPage;
+        });
+        
+        console.log(`🔍 Google: ${items.length} raw results → ${normalizedGoogle.length} individual jobs (filtered out ${items.length - normalizedGoogle.length} aggregated pages)`);
         allResults.push(...normalizedGoogle.map(job => ({...job, _provider: 'Google', _raw: googleResp.value.raw})));
         combinedTotal += normalizedGoogle.length;
       }
@@ -483,8 +548,19 @@ exports.handler = async (event, context) => {
       totalCount = response.count || rawItems.length;
     } else if (provider === 'Google') {
       // Google Custom Search returns {items: [...], searchInformation: { totalResults: "123" }}
-      rawItems = response.items || [];
-      totalCount = parseInt(response.searchInformation?.totalResults || rawItems.length);
+      const allGoogleItems = response.items || [];
+      // Filter out aggregated search pages for Google-only searches too
+      rawItems = allGoogleItems.filter(item => {
+        const title = item.title || item.htmlTitle || '';
+        const isAggregatedPage = 
+          title.toLowerCase().includes('jobs in') ||
+          title.toLowerCase().includes('job search') ||
+          /^\d+\s*(results?|jobs?|opportunities)/i.test(title) ||
+          title.length < 10;
+        return !isAggregatedPage;
+      });
+      console.log(`🔍 Google filter: ${allGoogleItems.length} raw → ${rawItems.length} individual jobs`);
+      totalCount = rawItems.length;
     } else {
       rawItems = response.results || response.data || [];
       totalCount = response.count || response.total || rawItems.length;

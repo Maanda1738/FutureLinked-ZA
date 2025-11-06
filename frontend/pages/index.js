@@ -10,6 +10,34 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { usePageTracking, logSearch } from '../utils/analytics';
 
+// Template Download Card Component
+function TemplateDownloadCard({ title, icon, description, features }) {
+  return (
+    <Link href="/resources" className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all transform hover:scale-105 overflow-hidden">
+      <div className="bg-gradient-to-br from-primary-500 to-purple-600 p-6 text-center">
+        <div className="text-6xl mb-2">{icon}</div>
+        <h3 className="text-xl font-bold text-white">{title}</h3>
+      </div>
+      <div className="p-6">
+        <p className="text-gray-600 mb-4">{description}</p>
+        <ul className="space-y-2 mb-4">
+          {features.map((feature, idx) => (
+            <li key={idx} className="text-sm text-gray-700 flex items-center">
+              <span className="text-green-500 mr-2">✓</span>
+              {feature}
+            </li>
+          ))}
+        </ul>
+        <div className="text-center">
+          <span className="inline-block bg-primary-600 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-primary-700 transition-colors">
+            Download Free
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -208,7 +236,7 @@ export default function Home() {
                     Making finding opportunities in South Africa simple, fast, and stress-free
                   </p>
                   <p className="text-md text-blue-300 mb-12 max-w-2xl mx-auto">
-                    Powered by intelligent automation and Adzuna API • No sign-ups • No downloads • Just search
+                    Powered by Adzuna, Jooble & Google APIs • Multi-source search • No sign-ups • Just search
                   </p>
                 </>
               )}
@@ -319,6 +347,45 @@ export default function Home() {
           {/* Features Section (when no search) */}
           {!hasSearched && (
             <>
+              {/* CV Templates Section - PROMINENTLY DISPLAYED */}
+              <div className="py-16 bg-gradient-to-br from-green-50 to-blue-50">
+                <div className="container mx-auto px-4">
+                  <div className="text-center mb-12">
+                    <h2 className="text-4xl font-bold mb-3 text-gray-800">
+                      📄 Free CV & Application Templates
+                    </h2>
+                    <p className="text-xl text-gray-600">Professional templates to boost your job applications</p>
+                  </div>
+                  
+                  <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-8">
+                    <TemplateDownloadCard
+                      title="Professional CV Template"
+                      icon="📝"
+                      description="ATS-friendly CV template used by successful job seekers"
+                      features={["Clean layout", "Easy to customize", "2-page format"]}
+                    />
+                    <TemplateDownloadCard
+                      title="Cover Letter Template"
+                      icon="✉️"
+                      description="Compelling cover letter template that gets responses"
+                      features={["Professional tone", "Customizable", "Proven format"]}
+                    />
+                    <TemplateDownloadCard
+                      title="Bursary Motivation Letter"
+                      icon="🎓"
+                      description="Win bursaries with this motivation letter template"
+                      features={["Student-focused", "Persuasive structure", "Sample content"]}
+                    />
+                  </div>
+                  
+                  <div className="text-center">
+                    <Link href="/resources" className="inline-block bg-primary-600 text-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-primary-700 transition-colors shadow-lg hover:shadow-xl">
+                      Download All Templates Free →
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
               {/* Career Tips Section - Prominent */}
               <div className="py-12 bg-gradient-to-r from-primary-600 to-purple-600">
                 <div className="container mx-auto px-4">

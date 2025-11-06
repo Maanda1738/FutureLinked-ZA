@@ -54,8 +54,10 @@ export default function Footer() {
             </div>
             
             <div className="flex flex-col items-center md:items-end gap-2">
-              <span className="text-sm text-gray-400">Powered by Adzuna API • Intelligent Automation</span>
+              <span className="text-sm text-gray-400">Powered by Adzuna, Jooble & Google APIs</span>
               <div className="flex items-center gap-2 text-xs text-gray-500">
+                <span>Intelligent Multi-Source Search</span>
+                <span>•</span>
                 <span>🇿🇦 Proudly South African</span>
               </div>
             </div>

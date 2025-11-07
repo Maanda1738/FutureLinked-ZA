@@ -122,9 +122,11 @@ export default function Blog() {
                     {post.category}
                   </span>
 
-                  <h2 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">
-                    {post.title}
-                  </h2>
+                  <Link href={`/articles/${post.slug}`}>
+                    <h2 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 hover:text-green-600 cursor-pointer transition-colors">
+                      {post.title}
+                    </h2>
+                  </Link>
 
                   <p className="text-gray-600 mb-4 line-clamp-3">
                     {post.excerpt}
@@ -134,6 +136,13 @@ export default function Blog() {
                     <User className="w-4 h-4 mr-1" />
                     {post.author}
                   </div>
+
+                  {/* Read More Button */}
+                  <Link href={`/articles/${post.slug}`}>
+                    <a className="inline-block px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium mb-4">
+                      Read Full Article →
+                    </a>
+                  </Link>
 
                   {/* Tags */}
                   <div className="flex flex-wrap gap-2 mb-4">

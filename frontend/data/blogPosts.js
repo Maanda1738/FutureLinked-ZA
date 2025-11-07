@@ -8,11 +8,11 @@ export const blogPosts = [
     date: '2025-01-15',
     category: 'Career Advice',
     image: '📈',
-    readTime: '5 min read',
+    readTime: '12 min read',
     tags: ['Job Search', 'Top Employers', 'Career Opportunities', 'South Africa']
   },
   {
-    slug: 'cv-writing-guide-2025',
+    slug: 'cv-writing-guide',
     title: 'Ultimate CV Writing Guide for South African Job Seekers 2025',
     excerpt: 'Learn how to create a professional CV that stands out to South African employers. Includes templates, examples, and insider tips from HR professionals.',
     author: 'Sarah Molefe, Career Advisor',
@@ -30,7 +30,7 @@ export const blogPosts = [
     date: '2025-01-08',
     category: 'Bursaries',
     image: '🎓',
-    readTime: '10 min read',
+    readTime: '15 min read',
     tags: ['Bursaries', 'Scholarships', 'Education', 'Financial Aid', 'Students']
   },
   {
@@ -41,11 +41,11 @@ export const blogPosts = [
     date: '2025-01-05',
     category: 'Career Advice',
     image: '💼',
-    readTime: '6 min read',
+    readTime: '10 min read',
     tags: ['LinkedIn', 'Professional Networking', 'Personal Branding', 'Job Search']
   },
   {
-    slug: 'interview-preparation-guide-2025',
+    slug: 'interview-guide',
     title: 'Ace Your Interview: Complete Preparation Guide for SA Job Interviews',
     excerpt: 'Master the art of job interviews with expert tips tailored for South African companies. From preparation to follow-up, everything you need to succeed.',
     author: 'David Naidoo, HR Consultant',

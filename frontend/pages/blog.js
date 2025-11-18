@@ -71,30 +71,39 @@ export default function Blog() {
         <meta property="twitter:description" content="Expert career advice, CV tips, bursary guides, and job search strategies for South African job seekers." />
       </Head>
 
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
         <Header />
         
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          {/* Hero Section */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Career Blog & Resources
+          {/* Hero Section - MODERNIZED */}
+          <div className="text-center mb-16 animate-fadeIn">
+            <div className="inline-block mb-6">
+              <span className="bg-gradient-to-r from-green-600 to-blue-600 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
+                📚 CAREER INSIGHTS & GUIDES
+              </span>
+            </div>
+            <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6 leading-tight">
+              Expert Career Advice
+              <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-blue-600">
+                For Your Success
+              </span>
             </h1>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Expert advice, practical tips, and insider strategies to accelerate your career in South Africa
+            <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto">
+              Practical tips, insider strategies, and expert guidance to accelerate your career in South Africa
             </p>
           </div>
 
-          {/* Category Filter */}
-          <div className="flex flex-wrap justify-center gap-3 mb-10">
+          {/* Category Filter - IMPROVED */}
+          <div className="flex flex-wrap justify-center gap-3 mb-12 animate-slideUp">
             {categories.map(category => (
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`px-6 py-2 rounded-full font-medium transition-all ${
+                className={`px-6 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${
                   selectedCategory === category
-                    ? 'bg-green-600 text-white shadow-lg'
-                    : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                    ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-lg'
+                    : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-200 hover:border-green-300'
                 }`}
               >
                 {category}
@@ -102,52 +111,51 @@ export default function Blog() {
             ))}
           </div>
 
-          {/* Blog Posts Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* Blog Posts Grid - ENHANCED */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 animate-fadeIn">
             {filteredPosts.map(post => (
-              <article key={post.slug} className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow overflow-hidden">
+              <article key={post.slug} className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all overflow-hidden transform hover:-translate-y-2">
                 {/* Post Header */}
-                <div className="p-6">
-                  <div className="text-6xl mb-4">{post.image}</div>
+                <div className="p-8">
+                  <div className="text-7xl mb-6 transform group-hover:scale-110 transition-transform">{post.image}</div>
                   
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
-                    <span className="flex items-center">
-                      <Calendar className="w-4 h-4 mr-1" />
-                      {post.date}
+                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                    <span className="flex items-center bg-gray-100 px-3 py-1.5 rounded-lg">
+                      <Calendar className="w-4 h-4 mr-1.5" />
+                      {new Date(post.date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
-                    <span>{post.readTime}</span>
+                    <span className="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg font-medium">{post.readTime}</span>
                   </div>
 
-                  <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full mb-3">
+                  <span className="inline-block px-4 py-1.5 bg-gradient-to-r from-green-100 to-blue-100 text-green-700 text-xs font-bold rounded-full mb-4">
                     {post.category}
                   </span>
 
-                  <Link href={`/articles/${post.slug}`}>
-                    <h2 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 hover:text-green-600 cursor-pointer transition-colors">
+                  <Link href={`/articles/${post.slug}`} className="block mb-4">
+                    <h2 className="text-2xl font-extrabold text-gray-900 mb-3 line-clamp-2 group-hover:text-green-600 transition-colors leading-tight">
                       {post.title}
                     </h2>
                   </Link>
 
-                  <p className="text-gray-600 mb-4 line-clamp-3">
+                  <p className="text-gray-600 mb-6 line-clamp-3 leading-relaxed">
                     {post.excerpt}
                   </p>
 
-                  <div className="flex items-center text-sm text-gray-500 mb-4">
-                    <User className="w-4 h-4 mr-1" />
-                    {post.author}
+                  <div className="flex items-center text-sm text-gray-500 mb-6 bg-gray-50 px-3 py-2 rounded-lg">
+                    <User className="w-4 h-4 mr-2" />
+                    <span className="font-medium">{post.author}</span>
                   </div>
 
                   {/* Read More Button */}
-                  <Link href={`/articles/${post.slug}`}>
-                    <a className="inline-block px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium mb-4">
-                      Read Full Article →
-                    </a>
+                  <Link href={`/articles/${post.slug}`} className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-xl hover:from-green-700 hover:to-blue-700 transition-all text-sm font-bold mb-6 shadow-md group-hover:shadow-lg transform group-hover:scale-105">
+                    Read Full Article
+                    <span className="text-xl">→</span>
                   </Link>
 
                   {/* Tags */}
-                  <div className="flex flex-wrap gap-2 mb-4">
+                  <div className="flex flex-wrap gap-2 mb-6">
                     {post.tags.slice(0, 3).map(tag => (
-                      <span key={tag} className="inline-flex items-center text-xs text-gray-600">
+                      <span key={tag} className="inline-flex items-center text-xs text-gray-600 bg-gray-100 px-3 py-1.5 rounded-full">
                         <Tag className="w-3 h-3 mr-1" />
                         {tag}
                       </span>
@@ -155,48 +163,50 @@ export default function Blog() {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                    <div className="text-sm font-medium text-gray-700">
-                      Share this article:
+                  <div className="pt-6 border-t-2 border-gray-100">
+                    <div className="text-xs font-bold text-gray-700 mb-3 uppercase tracking-wide">
+                      Share This Article:
                     </div>
 
                     <div className="flex gap-2">
                       <button
                         onClick={() => sharePost(post, 'whatsapp')}
-                        className="p-2 text-gray-500 hover:text-green-600 transition-colors"
+                        className="flex-1 p-2.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-all transform hover:scale-105"
                         title="Share on WhatsApp"
                       >
-                        <MessageCircle className="w-5 h-5" />
+                        <MessageCircle className="w-5 h-5 mx-auto" />
                       </button>
                       <button
                         onClick={() => sharePost(post, 'facebook')}
-                        className="p-2 text-gray-500 hover:text-blue-600 transition-colors"
+                        className="flex-1 p-2.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-all transform hover:scale-105"
                         title="Share on Facebook"
                       >
-                        <Facebook className="w-5 h-5" />
+                        <Facebook className="w-5 h-5 mx-auto" />
                       </button>
                       <button
                         onClick={() => sharePost(post, 'twitter')}
-                        className="p-2 text-gray-500 hover:text-blue-400 transition-colors"
+                        className="flex-1 p-2.5 bg-sky-50 text-sky-600 hover:bg-sky-100 rounded-lg transition-all transform hover:scale-105"
                         title="Share on Twitter"
                       >
-                        <Twitter className="w-5 h-5" />
+                        <Twitter className="w-5 h-5 mx-auto" />
                       </button>
                       <button
                         onClick={() => sharePost(post, 'linkedin')}
-                        className="p-2 text-gray-500 hover:text-blue-700 transition-colors"
+                        className="flex-1 p-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-all transform hover:scale-105"
                         title="Share on LinkedIn"
                       >
-                        <Linkedin className="w-5 h-5" />
+                        <Linkedin className="w-5 h-5 mx-auto" />
                       </button>
                       <button
                         onClick={() => copyLink(post)}
-                        className={`p-2 transition-colors ${
-                          copiedLink === post.slug ? 'text-green-600' : 'text-gray-500 hover:text-green-600'
+                        className={`flex-1 p-2.5 rounded-lg transition-all transform hover:scale-105 ${
+                          copiedLink === post.slug 
+                            ? 'bg-green-100 text-green-600' 
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                         title={copiedLink === post.slug ? 'Copied!' : 'Copy link'}
                       >
-                        <LinkIcon className="w-5 h-5" />
+                        <LinkIcon className="w-5 h-5 mx-auto" />
                       </button>
                     </div>
                   </div>
@@ -205,17 +215,31 @@ export default function Blog() {
             ))}
           </div>
 
-          {/* CTA Section */}
-          <div className="mt-16 bg-gradient-to-r from-green-600 to-blue-600 rounded-2xl p-8 md:p-12 text-center text-white">
-            <h2 className="text-3xl font-bold mb-4">Ready to Start Your Job Search?</h2>
-            <p className="text-lg mb-6 opacity-90">
-              Apply the strategies you have learned and find your dream job today
+          {/* CTA Section - ENHANCED */}
+          <div className="mt-20 bg-gradient-to-br from-green-600 via-blue-600 to-purple-600 rounded-3xl p-10 md:p-16 text-center text-white shadow-2xl transform hover:scale-105 transition-all">
+            <div className="text-6xl mb-6 animate-bounce">🚀</div>
+            <h2 className="text-4xl md:text-5xl font-extrabold mb-6">Ready to Land Your Dream Job?</h2>
+            <p className="text-xl md:text-2xl mb-8 opacity-90 max-w-2xl mx-auto">
+              Apply what you've learned and start your job search journey today!
             </p>
-            <Link href="/">
-              <a className="inline-block bg-white text-green-600 px-8 py-3 rounded-lg font-bold text-lg hover:bg-gray-100 transition-colors">
-                Search Jobs Now
-              </a>
+            <Link href="/" className="inline-flex items-center gap-3 bg-white text-green-600 px-10 py-5 rounded-2xl font-extrabold text-xl hover:bg-gray-100 transition-all shadow-xl hover:shadow-2xl transform hover:scale-105">
+              <span>Start Searching Jobs</span>
+              <span className="text-2xl">→</span>
             </Link>
+            <div className="mt-8 flex items-center justify-center gap-8 text-sm opacity-80">
+              <span className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                10K+ Active Jobs
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                100% Free
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                No Sign-ups
+              </span>
+            </div>
           </div>
         </main>
 

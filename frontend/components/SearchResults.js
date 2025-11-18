@@ -1,8 +1,11 @@
 import { ExternalLink, MapPin, Calendar, Building, Loader, ChevronDown, Star, Heart, MessageCircle } from 'lucide-react';
 import { useSavedJobs } from '../context/SavedJobsContext';
 import { logShare } from '../utils/analytics';
+import { useState, useEffect } from 'react';
+import { calculateMatchScore } from '../utils/cvMatcher';
+import MatchScore from './MatchScore';
 
-export default function SearchResults({ results, loading, loadingMore, query, totalResults, currentCount, onLoadMore }) {
+export default function SearchResults({ results, loading, loadingMore, query, totalResults, currentCount, onLoadMore, cvData }) {
   if (loading) {
     return (
       <div className="text-center py-16">
@@ -70,60 +73,71 @@ export default function SearchResults({ results, loading, loadingMore, query, to
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">
-          Search Results for "{query}"
-        </h2>
-        <div className="text-sm text-gray-500">
-          Showing {currentCount} of {totalResults} opportunities
+      {/* Results Header */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-6 border border-blue-100">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-800 mb-2">
+              🔍 Results for "{query}"
+            </h2>
+            <p className="text-gray-600">
+              Found <span className="font-semibold text-blue-600">{totalResults}</span> opportunities • 
+              Showing <span className="font-semibold text-purple-600">{currentCount}</span>
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2 text-sm">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+            </span>
+            <span className="text-green-700 font-medium">Fresh Jobs Only (Last 7 days)</span>
+          </div>
         </div>
       </div>
 
-      <div className="space-y-4">
+      {/* Job Cards Grid */}
+      <div className="space-y-5">
         {results.map((job, index) => (
-          <JobCard key={index} job={job} />
+          <JobCard key={index} job={job} cvData={cvData} />
         ))}
       </div>
 
       {/* Load More Button */}
       {currentCount < totalResults && (
-        <div className="text-center mt-8">
+        <div className="text-center mt-10">
           <button
             onClick={onLoadMore}
             disabled={loadingMore}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             {loadingMore ? (
               <>
-                <Loader className="h-5 w-5 animate-spin" />
-                Loading more...
+                <Loader className="h-6 w-6 animate-spin" />
+                Loading more opportunities...
               </>
             ) : (
               <>
-                <ChevronDown className="h-5 w-5" />
-                View More ({totalResults - currentCount} more available)
+                <ChevronDown className="h-6 w-6" />
+                Load More Jobs ({totalResults - currentCount} remaining)
               </>
             )}
           </button>
-          <p className="text-sm text-gray-500 mt-2">
-            Showing {currentCount} of {totalResults} opportunities
-          </p>
         </div>
       )}
 
+      {/* Footer Info */}
       {results.length > 0 && (
-        <div className="text-center mt-8 p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-green-200">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-            </span>
-            <p className="text-sm font-semibold text-green-700">
-              ✅ Fresh Jobs Only - Posted within last 7 days
+        <div className="text-center mt-8 p-5 bg-gradient-to-r from-green-50 via-blue-50 to-purple-50 rounded-xl border-2 border-green-200">
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+            <p className="text-lg font-bold text-gray-800">
+              All jobs are verified and up-to-date
             </p>
+            <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
           </div>
-          <p className="text-xs text-blue-600">
-            Powered by Adzuna API • Updated in real-time • No old or duplicate listings
+          <p className="text-sm text-gray-600">
+            🔥 Powered by Adzuna, Jooble & Google APIs • Updated in real-time • Direct application links
           </p>
         </div>
       )}
@@ -131,9 +145,37 @@ export default function SearchResults({ results, loading, loadingMore, query, to
   );
 }
 
-function JobCard({ job }) {
+function JobCard({ job, cvData: cvDataProp }) {
   const { saveJob, unsaveJob, isSaved } = useSavedJobs();
   const saved = isSaved(job.id);
+  const [matchData, setMatchData] = useState(null);
+  
+  // Use cvData directly from prop or localStorage (synchronously)
+  let cvData = cvDataProp;
+  if (!cvData) {
+    try {
+      const storedCvData = localStorage.getItem('cvData');
+      if (storedCvData) {
+        cvData = JSON.parse(storedCvData);
+      }
+    } catch (error) {
+      console.error('Error parsing CV data:', error);
+    }
+  }
+
+  // Calculate match score if CV is uploaded
+  useEffect(() => {
+    if (cvData) {
+      try {
+        const score = calculateMatchScore(cvData, {
+          description: job.description || job.title || '',
+        });
+        setMatchData(score);
+      } catch (error) {
+        console.error('Error calculating match score:', error);
+      }
+    }
+  }, [job, cvData]);
 
   const handleSaveToggle = (e) => {
     e.preventDefault();
@@ -253,52 +295,64 @@ function JobCard({ job }) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jobSchema) }}
       />
 
-      <div className="job-card bg-white p-6 rounded-lg hover:shadow-lg relative border-l-4 border-transparent hover:border-primary-500 transition-all">
-      {/* ✅ Fresh Job Badge */}
-      {isNewJob && (
-        <div className="absolute top-4 right-4">
-          <span className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full text-xs font-bold animate-pulse shadow-lg">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-            </span>
-            NEW
-          </span>
-        </div>
-      )}
+      <div className="job-card bg-white rounded-2xl shadow-md hover:shadow-2xl relative border border-gray-100 hover:border-blue-300 transition-all transform hover:-translate-y-1 overflow-hidden">
+      {/* Colored Top Border based on opportunity type */}
+      <div className={`h-2 ${
+        opportunityType === 'bursary' ? 'bg-gradient-to-r from-yellow-400 to-orange-400' :
+        opportunityType === 'scholarship' ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
+        opportunityType === 'internship' ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+        opportunityType === 'learnership' ? 'bg-gradient-to-r from-blue-500 to-cyan-500' :
+        opportunityType === 'graduate' ? 'bg-gradient-to-r from-indigo-500 to-purple-500' :
+        'bg-gradient-to-r from-blue-500 to-purple-500'
+      }`} />
       
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2 flex-wrap">
-            <h3 className="text-xl font-semibold text-gray-800 hover:text-primary-600">
-              {job.title}
-            </h3>
-            {opportunityType && (
-              <span className={`px-3 py-1 rounded-full text-xs font-bold ${getJobTypeColor(opportunityType)}`}>
-                {getJobTypeIcon(opportunityType)} {opportunityType.toUpperCase()}
+      <div className="p-6">
+        {/* ✅ Fresh Job Badge */}
+        {isNewJob && (
+          <div className="absolute top-6 right-6">
+            <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full text-xs font-bold animate-pulse shadow-lg">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
               </span>
-            )}
+              NEW
+            </span>
           </div>
-          
-          <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-            {job.company && (
-              <div className="flex items-center gap-1">
-                <Building className="h-4 w-4" />
-                <span>{job.company}</span>
-              </div>
-            )}
-            {job.location && (
-              <div className="flex items-center gap-1">
-                <MapPin className="h-4 w-4" />
-                <span>{job.location}</span>
-              </div>
-            )}
-            {job.posted && (
-              <div className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                <span className={`font-semibold ${relativeTime ? 'text-green-600' : 'text-gray-600'}`}>
-                  {relativeTime ? (
-                    <>
+        )}
+        
+        {/* Header Section */}
+        <div className="flex justify-between items-start mb-5">
+          <div className="flex-1 pr-16">
+            <div className="flex items-center gap-3 mb-3 flex-wrap">
+              <h3 className="text-2xl font-bold text-gray-800 hover:text-blue-600 transition-colors">
+                {job.title}
+              </h3>
+              {opportunityType && (
+                <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${getJobTypeColor(opportunityType)} transform hover:scale-105 transition-transform`}>
+                  {getJobTypeIcon(opportunityType)} {opportunityType.toUpperCase()}
+                </span>
+              )}
+            </div>
+            
+            {/* Job Meta Information */}
+            <div className="flex items-center gap-4 text-sm text-gray-600 flex-wrap">
+              {job.company && (
+                <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg">
+                  <Building className="h-4 w-4 text-blue-600" />
+                  <span className="font-medium">{job.company}</span>
+                </div>
+              )}
+              {job.location && (
+                <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg">
+                  <MapPin className="h-4 w-4 text-green-600" />
+                  <span className="font-medium">{job.location}</span>
+                </div>
+              )}
+              {job.posted && (
+                <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg">
+                  <Calendar className="h-4 w-4 text-purple-600" />
+                  <span className={`font-semibold ${relativeTime ? 'text-green-600' : 'text-gray-600'}`}>
+                    {relativeTime ? (
                       <span className="inline-flex items-center gap-1">
                         <span className="relative flex h-2 w-2">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -306,49 +360,74 @@ function JobCard({ job }) {
                         </span>
                         {relativeTime}
                       </span>
-                    </>
-                  ) : (
-                    formatDate(job.posted)
-                  )}
-                </span>
-              </div>
-            )}
+                    ) : (
+                      formatDate(job.posted)
+                    )}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
+      {/* Description */}
       {job.description && (
-        <p className="text-gray-600 mb-4 line-clamp-3">
-          {job.description}
-        </p>
+        <div className="mb-5">
+          <p className="text-gray-700 leading-relaxed line-clamp-3">
+            {job.description}
+          </p>
+        </div>
       )}
 
+      {/* Match Score Display */}
+      {matchData && (
+        <div className="mb-5 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-100">
+          <MatchScore 
+            score={matchData.score} 
+            breakdown={matchData.breakdown} 
+            recommendation={matchData.recommendation}
+            cvData={cvData}
+            jobTitle={job.title}
+          />
+        </div>
+      )}
+
+      {/* Requirements Section */}
       {job.requirements && job.requirements.length > 0 && (
-        <div className="mb-4">
-          <h4 className="font-medium text-gray-700 mb-2">Key Requirements:</h4>
-          <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+        <div className="mb-5 bg-gray-50 rounded-xl p-4">
+          <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <span className="text-lg">📋</span>
+            Key Requirements:
+          </h4>
+          <ul className="space-y-2">
             {job.requirements.slice(0, 3).map((req, index) => (
-              <li key={index}>{req}</li>
+              <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
+                <span className="text-green-500 font-bold mt-0.5">✓</span>
+                <span>{req}</span>
+              </li>
             ))}
           </ul>
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+      {/* Footer Section */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 pt-4 border-t border-gray-100">
         <div className="flex items-center gap-4 flex-wrap">
           {job.salary && (
-            <span className="text-sm font-medium text-green-600">
-              {job.salary}
-            </span>
+            <div className="flex items-center gap-1.5 bg-green-50 px-4 py-2 rounded-lg border border-green-200">
+              <span className="text-lg">💰</span>
+              <span className="text-sm font-bold text-green-700">{job.salary}</span>
+            </div>
           )}
           {job.source && (
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full">
               via {job.source}
             </span>
           )}
         </div>
         
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Action Buttons */}
+        <div className="flex items-center gap-3 flex-wrap">
           {/* WhatsApp Share Button */}
           <button
             onClick={() => {
@@ -357,47 +436,49 @@ function JobCard({ job }) {
               window.open(whatsappUrl, '_blank');
               logShare('job', job.title, 'whatsapp');
             }}
-            className="inline-flex items-center gap-1 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors font-medium"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all font-semibold shadow-md hover:shadow-lg transform hover:scale-105"
             title="Share on WhatsApp"
           >
-            <MessageCircle className="h-4 w-4" />
-            <span className="hidden sm:inline">Share</span>
+            <MessageCircle className="h-5 w-5" />
+            <span>Share</span>
           </button>
 
           {/* Save Button */}
           <button
             onClick={handleSaveToggle}
-            className={`inline-flex items-center gap-1 px-4 py-2 rounded-md font-medium transition-all flex-1 sm:flex-initial justify-center ${
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold transition-all shadow-md hover:shadow-lg transform hover:scale-105 ${
               saved 
-                ? 'bg-red-100 text-red-600 hover:bg-red-200' 
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
             title={saved ? 'Remove from saved jobs' : 'Save for later'}
           >
             {saved ? (
               <>
-                <Heart className="h-4 w-4 fill-current" />
-                <span className="sm:inline">Saved</span>
+                <Heart className="h-5 w-5 fill-current" />
+                <span>Saved</span>
               </>
             ) : (
               <>
-                <Star className="h-4 w-4" />
-                <span className="sm:inline">Save</span>
+                <Star className="h-5 w-5" />
+                <span>Save</span>
               </>
             )}
           </button>
 
-          {/* Apply Now Button */}
+          {/* Apply Now Button - PRIMARY CTA */}
           <a
             href={job.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors font-medium flex-1 sm:flex-initial justify-center"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all font-bold shadow-lg hover:shadow-xl transform hover:scale-105"
           >
+            <span className="text-lg">🚀</span>
             Apply Now
-            <ExternalLink className="h-4 w-4" />
+            <ExternalLink className="h-5 w-5" />
           </a>
         </div>
+      </div>
       </div>
     </div>
     </>

@@ -14,6 +14,15 @@ const nextConfig = {
       },
     ];
   },
+  // Configure webpack to properly handle PDF parsing libraries
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Don't bundle these server-only packages
+      config.externals = config.externals || [];
+      config.externals.push('pdf-parse', 'canvas');
+    }
+    return config;
+  },
 };
 
 module.exports = nextConfig;

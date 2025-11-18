@@ -13,8 +13,10 @@ const PORT = process.env.PORT || 3001;
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Rate limiting
@@ -34,9 +36,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use('/api/search', searchRoutes);
-app.use('/api/health', healthRoutes);
-app.use('/api/contact', contactRoutes);
+app.use('/search', searchRoutes);
+app.use('/health', healthRoutes);
+app.use('/contact', contactRoutes);
+
+// CV Analysis routes (OpenAI-powered)
+const cvAnalysisRoutes = require('./routes/cv-analysis');
+app.use('/cv', cvAnalysisRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -45,9 +51,15 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     status: 'running',
     endpoints: {
-      search: '/api/search',
-      health: '/api/health',
-      contact: '/api/contact'
+      search: '/search',
+      health: '/health',
+      contact: '/contact',
+      cv: {
+        upload: '/cv/upload',
+        analyze: '/cv/analyze',
+        matchJobs: '/cv/match-jobs',
+        edit: '/cv/edit'
+      }
     }
   });
 });

@@ -58,10 +58,14 @@ class JobService {
   constructor() {
     this.adzunaAppId = process.env.ADZUNA_APP_ID;
     this.adzunaApiKey = process.env.ADZUNA_API_KEY;
+    this.rapidApiKey = process.env.RAPIDAPI_KEY || process.env.JSEARCH_API_KEY;
+    this.joobleApiKey = process.env.JOOBLE_API_KEY;
+    this.googleApiKey = process.env.GOOGLE_API_KEY;
+    this.googleCseId = process.env.GOOGLE_CSE_ID;
     this.scraperTimeoutMs = parseInt(process.env.SCRAPER_TIMEOUT_MS || '12000', 10);
     
     // ✅ Job freshness settings
-    this.maxDaysOld = parseInt(process.env.ADZUNA_MAX_DAYS_OLD || '7', 10);
+    this.maxDaysOld = parseInt(process.env.ADZUNA_MAX_DAYS_OLD || '30', 10);
     this.sortBy = process.env.ADZUNA_SORT_BY || 'date';
     
     // ✅ Track seen job IDs to prevent showing same jobs repeatedly
@@ -134,10 +138,64 @@ class JobService {
         ]);
       };
 
-      // PRIMARY SOURCE: Adzuna API (fast, reliable, comprehensive)
+      // PRIMARY SOURCE: Jooble API (fast, reliable, comprehensive)
+      if (this.joobleApiKey) {
+        try {
+          console.log('🔗 Searching Jooble API (primary source)...');
+          const joobleResults = await withTimeout(this.searchJooble(query, location, page), 'Jooble API');
+          if (joobleResults.length > 0) {
+            allResults.push(...joobleResults);
+            sources.push('Jooble API');
+            console.log(`✅ Jooble API: Found ${joobleResults.length} jobs`);
+          } else {
+            console.log('⚠️ Jooble API: No jobs found');
+          }
+        } catch (error) {
+          console.error('❌ Jooble API failed:', error.message);
+          errors.push(`Jooble: ${error.message}`);
+        }
+      }
+
+      // SECONDARY SOURCE: JSearch API via RapidAPI (backup)
+      if (this.rapidApiKey) {
+        try {
+          console.log('🔗 Searching JSearch API (secondary source)...');
+          const jsearchResults = await withTimeout(this.searchJSearch(query, location, page), 'JSearch API');
+          if (jsearchResults.length > 0) {
+            allResults.push(...jsearchResults);
+            sources.push('JSearch API');
+            console.log(`✅ JSearch API: Found ${jsearchResults.length} jobs`);
+          } else {
+            console.log('⚠️ JSearch API: No jobs found');
+          }
+        } catch (error) {
+          console.error('❌ JSearch API failed:', error.message);
+          errors.push(`JSearch: ${error.message}`);
+        }
+      }
+
+      // TERTIARY SOURCE: Google Custom Search API (additional results)
+      if (this.googleApiKey && this.googleCseId) {
+        try {
+          console.log('🔗 Searching Google Custom Search API...');
+          const googleResults = await withTimeout(this.searchGoogle(query, location), 'Google API');
+          if (googleResults.length > 0) {
+            allResults.push(...googleResults);
+            sources.push('Google Search');
+            console.log(`✅ Google Search: Found ${googleResults.length} jobs`);
+          } else {
+            console.log('⚠️ Google Search: No jobs found');
+          }
+        } catch (error) {
+          console.error('❌ Google Search failed:', error.message);
+          errors.push(`Google: ${error.message}`);
+        }
+      }
+
+      // QUATERNARY SOURCE: Adzuna API (backup when others fail)
       if (this.adzunaAppId && this.adzunaApiKey) {
         try {
-          console.log('🔗 Searching Adzuna API (primary source)...');
+          console.log('🔗 Searching Adzuna API (secondary source)...');
           const adzunaResults = await withTimeout(this.searchAdzuna(query, location, page), 'Adzuna API');
           if (adzunaResults.length > 0) {
             allResults.push(...adzunaResults);
@@ -255,20 +313,24 @@ class JobService {
         }
       }
 
-      // If absolutely no results found, log and return empty
+      // If absolutely no results found, return demo data
       if (allResults.length === 0) {
-        console.log('❌ No jobs found');
+        console.log('❌ No jobs found from APIs');
         console.log('🔍 Sources attempted:', sources.length > 0 ? sources.join(', ') : 'Adzuna API');
         if (errors.length > 0) {
           console.log('⚠️ Errors encountered:', errors.join('; '));
         }
         
+        // Return demo data so users can see the interface works
+        const demoJobs = this.getDemoJobs(query, location);
+        console.log(`📝 Returning ${demoJobs.length} demo jobs for testing`);
+        
         return {
-          results: [],
-          total: 0,
-          sources: sources.length > 0 ? sources : ['Adzuna API'],
-          message: 'No jobs found for this search. Try different keywords or location.',
-          errors: errors
+          results: demoJobs,
+          total: demoJobs.length,
+          sources: ['Demo Data'],
+          message: 'Showing sample results. Live API data temporarily unavailable.',
+          isDemo: true
         };
       }
 
@@ -306,6 +368,227 @@ class JobService {
         details: process.env.NODE_ENV === 'development' ? error.message : undefined
       };
     }
+  }
+
+  async searchJooble(query, location, page) {
+    try {
+      const url = `https://jooble.org/api/${this.joobleApiKey}`;
+      
+      // Force South African locations
+      const searchLocation = location || 'South Africa';
+      
+      const data = {
+        keywords: `${query} South Africa`,
+        location: searchLocation
+      };
+
+      console.log('📡 Calling Jooble API with keywords:', data.keywords, 'Location:', searchLocation);
+      const response = await axios.post(url, data, { 
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 10000 
+      });
+      
+      if (!response.data || !response.data.jobs) {
+        console.log('⚠️ Jooble returned no jobs');
+        return [];
+      }
+
+      // Filter for South African jobs only
+      const saJobs = response.data.jobs.filter(job => {
+        const location = job.location?.toLowerCase() || '';
+        return location.includes('south africa') || 
+               location.includes('johannesburg') ||
+               location.includes('cape town') ||
+               location.includes('pretoria') ||
+               location.includes('durban') ||
+               location.includes('gauteng') ||
+               location.includes('western cape') ||
+               location.includes('kwazulu') ||
+               location.includes('eastern cape') ||
+               location.includes('free state') ||
+               location.includes('limpopo') ||
+               location.includes('mpumalanga') ||
+               location.includes('northern cape') ||
+               location.includes('north west');
+      });
+
+      const jobs = saJobs.map(job => {
+        const jobDate = job.updated ? new Date(job.updated) : new Date();
+        const daysOld = (Date.now() - jobDate) / (1000 * 60 * 60 * 24);
+        
+        return {
+          title: job.title,
+          company: job.company || 'Company Not Listed',
+          location: job.location,
+          description: job.snippet || 'No description available',
+          url: job.link,
+          salary: job.salary || null,
+          posted: job.updated || new Date().toISOString(),
+          daysOld: Math.floor(daysOld),
+          type: job.type || this.classifyJobType(job.title, job.snippet || ''),
+          source: 'Jooble',
+          requirements: [],
+          jobId: job.id?.toString()
+        };
+      });
+      
+      console.log(`📅 Jooble returned ${saJobs.length} South African jobs out of ${response.data.jobs.length} total`);
+      return jobs;
+      
+    } catch (error) {
+      console.error('Jooble API error:', error.message);
+      if (error.response) {
+        console.error('Jooble response status:', error.response.status);
+        console.error('Jooble response data:', error.response.data);
+      }
+      throw error;
+    }
+  }
+
+  async searchJSearch(query, location, page) {
+    try {
+      const url = 'https://jsearch.p.rapidapi.com/search';
+      
+      const params = {
+        query: `${query} in South Africa`.trim(),
+        page: page || 1,
+        num_pages: 1,
+        date_posted: 'month', // Last 30 days
+        country: 'za' // South Africa country code
+      };
+
+      const headers = {
+        'X-RapidAPI-Key': this.rapidApiKey,
+        'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
+      };
+
+      console.log('📡 Calling JSearch API with query:', params.query);
+      const response = await axios.get(url, { params, headers, timeout: 10000 });
+      
+      if (!response.data || !response.data.data) {
+        console.log('⚠️ JSearch returned no data');
+        return [];
+      }
+
+      // Filter for South African jobs only
+      const saJobs = response.data.data.filter(job => {
+        const country = job.job_country?.toLowerCase() || '';
+        const city = job.job_city?.toLowerCase() || '';
+        return country.includes('south africa') || 
+               country === 'za' ||
+               city.includes('johannesburg') ||
+               city.includes('cape town') ||
+               city.includes('pretoria') ||
+               city.includes('durban');
+      });
+
+      const jobs = saJobs.map(job => {
+        const jobDate = job.job_posted_at_datetime_utc ? new Date(job.job_posted_at_datetime_utc) : new Date();
+        const daysOld = (Date.now() - jobDate) / (1000 * 60 * 60 * 24);
+        
+        return {
+          title: job.job_title,
+          company: job.employer_name,
+          location: job.job_city && job.job_country ? `${job.job_city}, ${job.job_country}` : (job.job_country || 'Remote'),
+          description: job.job_description || job.job_highlights?.Qualifications?.join('. ') || 'No description available',
+          url: job.job_apply_link || job.job_google_link,
+          salary: job.job_min_salary && job.job_max_salary 
+            ? `${job.job_min_salary} - ${job.job_max_salary} ${job.job_salary_currency || ''}`
+            : null,
+          posted: job.job_posted_at_datetime_utc || new Date().toISOString(),
+          daysOld: Math.floor(daysOld),
+          type: this.classifyJobType(job.job_title, job.job_description || ''),
+          source: 'JSearch',
+          requirements: job.job_highlights?.Qualifications?.slice(0, 5) || [],
+          jobId: job.job_id
+        };
+      });
+      
+      console.log(`📅 JSearch returned ${saJobs.length} South African jobs out of ${response.data.data.length} total`);
+      return jobs;
+      
+    } catch (error) {
+      console.error('JSearch API error:', error.message);
+      if (error.response) {
+        console.error('JSearch response status:', error.response.status);
+        console.error('JSearch response data:', error.response.data);
+      }
+      throw error;
+    }
+  }
+
+  async searchGoogle(query, location) {
+    try {
+      const url = 'https://www.googleapis.com/customsearch/v1';
+      
+      const searchQuery = `${query} jobs ${location || 'South Africa'}`;
+      
+      const params = {
+        key: this.googleApiKey,
+        cx: this.googleCseId,
+        q: searchQuery,
+        num: 10 // Max 10 results per request
+      };
+
+      console.log('📡 Calling Google Custom Search API');
+      const response = await axios.get(url, { params, timeout: 10000 });
+      
+      if (!response.data || !response.data.items) {
+        console.log('⚠️ Google returned no items');
+        return [];
+      }
+
+      const jobs = response.data.items
+        .filter(item => {
+          // Only include South African job listings
+          const text = `${item.title} ${item.snippet} ${item.link}`.toLowerCase();
+          return text.includes('south africa') || 
+                 text.includes('johannesburg') ||
+                 text.includes('cape town') ||
+                 text.includes('pretoria') ||
+                 text.includes('durban') ||
+                 text.includes('.co.za');
+        })
+        .map(item => {
+          return {
+            title: item.title,
+            company: this.extractCompanyFromGoogle(item),
+            location: location || 'South Africa',
+            description: item.snippet,
+            url: item.link,
+            salary: null,
+            posted: new Date().toISOString(),
+            daysOld: 0,
+            type: this.classifyJobType(item.title, item.snippet),
+            source: 'Google',
+            requirements: [],
+            jobId: item.cacheId || item.link
+          };
+        });
+      
+      console.log(`📅 Google returned ${jobs.length} South African jobs`);
+      return jobs;
+      
+    } catch (error) {
+      console.error('Google API error:', error.message);
+      if (error.response) {
+        console.error('Google response status:', error.response.status);
+        console.error('Google response data:', error.response.data);
+      }
+      throw error;
+    }
+  }
+
+  extractCompanyFromGoogle(item) {
+    // Try to extract company name from title or snippet
+    if (item.title.includes(' at ')) {
+      return item.title.split(' at ')[1].split(' - ')[0].trim();
+    }
+    if (item.title.includes(' - ')) {
+      const parts = item.title.split(' - ');
+      if (parts.length > 1) return parts[parts.length - 1].trim();
+    }
+    return 'Company Not Listed';
   }
 
   async searchAdzuna(query, location, page) {
@@ -537,6 +820,89 @@ class JobService {
       ],
       field: bursary.field || 'General Studies'
     };
+  }
+
+  // Demo data for when API is unavailable
+  getDemoJobs(query, location) {
+    const queryLower = query.toLowerCase();
+    const demoJobs = [
+      {
+        title: 'Software Developer',
+        company: 'TechCorp SA',
+        location: 'Johannesburg, Gauteng',
+        description: 'We are looking for a talented software developer to join our growing team. You will work on exciting projects using modern technologies.',
+        url: '#',
+        salary: 'R35,000 - R50,000',
+        posted: new Date().toISOString(),
+        daysOld: 1,
+        type: 'job',
+        source: 'Demo',
+        requirements: ['Bachelor\'s degree in Computer Science', '2+ years experience', 'Knowledge of React and Node.js']
+      },
+      {
+        title: 'Graduate Programme - IT',
+        company: 'Future Solutions',
+        location: 'Cape Town, Western Cape',
+        description: 'Join our prestigious graduate programme designed to fast-track your career in technology.',
+        url: '#',
+        salary: 'R25,000 - R30,000',
+        posted: new Date().toISOString(),
+        daysOld: 2,
+        type: 'graduate',
+        source: 'Demo',
+        requirements: ['Recent graduate', 'Degree in IT or related field', 'Strong problem-solving skills']
+      },
+      {
+        title: 'Data Analyst Internship',
+        company: 'Data Insights Ltd',
+        location: 'Pretoria, Gauteng',
+        description: 'Exciting internship opportunity for aspiring data analysts to gain hands-on experience.',
+        url: '#',
+        salary: 'R12,000 - R15,000',
+        posted: new Date().toISOString(),
+        daysOld: 3,
+        type: 'internship',
+        source: 'Demo',
+        requirements: ['Currently studying or recent graduate', 'Knowledge of Excel and SQL', 'Analytical mindset']
+      },
+      {
+        title: 'Marketing Coordinator',
+        company: 'Brand Builders',
+        location: 'Durban, KwaZulu-Natal',
+        description: 'We are seeking a creative marketing coordinator to support our dynamic marketing team.',
+        url: '#',
+        salary: 'R20,000 - R28,000',
+        posted: new Date().toISOString(),
+        daysOld: 1,
+        type: 'job',
+        source: 'Demo',
+        requirements: ['Marketing qualification', '1-2 years experience', 'Social media expertise']
+      },
+      {
+        title: 'Engineering Bursary 2025',
+        company: 'SA Engineering Corp',
+        location: 'Various Locations',
+        description: 'Full bursary covering tuition fees and accommodation for outstanding engineering students.',
+        url: '#',
+        salary: 'Full tuition + R5,000/month',
+        posted: new Date().toISOString(),
+        daysOld: 5,
+        type: 'bursary',
+        source: 'Demo',
+        requirements: ['Engineering student', 'Minimum 65% average', 'South African citizen']
+      }
+    ];
+
+    // Filter demo jobs based on query
+    if (queryLower.includes('internship')) {
+      return demoJobs.filter(j => j.type === 'internship' || j.type === 'graduate');
+    } else if (queryLower.includes('bursary') || queryLower.includes('scholarship')) {
+      return demoJobs.filter(j => j.type === 'bursary');
+    } else if (queryLower.includes('graduate')) {
+      return demoJobs.filter(j => j.type === 'graduate');
+    }
+
+    return demoJobs;
   }
 }
 

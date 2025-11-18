@@ -5,7 +5,7 @@ import SearchBar from '../components/SearchBar';
 import SearchResults from '../components/SearchResults';
 import FilterSort from '../components/FilterSort';
 import Breadcrumbs from '../components/Breadcrumbs';
-import EnhancedAdBanner from '../components/EnhancedAdBanner';
+import CVUpload from '../components/CVUpload';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { usePageTracking, logSearch } from '../utils/analytics';
@@ -13,7 +13,7 @@ import { usePageTracking, logSearch } from '../utils/analytics';
 // Template Download Card Component
 function TemplateDownloadCard({ title, icon, description, features }) {
   return (
-    <Link href="/resources" className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all transform hover:scale-105 overflow-hidden">
+    <Link href="/resources" className="block bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all transform hover:scale-105 overflow-hidden">
       <div className="bg-gradient-to-br from-primary-500 to-purple-600 p-6 text-center">
         <div className="text-6xl mb-2">{icon}</div>
         <h3 className="text-xl font-bold text-white">{title}</h3>
@@ -50,9 +50,19 @@ export default function Home() {
   const [searchLocation, setSearchLocation] = useState('');
   const [filters, setFilters] = useState({});
   const [sortBy, setSortBy] = useState('date');
+  const [cvData, setCvData] = useState(null);
+  const [isCVMatchSearch, setIsCVMatchSearch] = useState(false);
 
   // Page tracking
   usePageTracking();
+
+  // Load CV data from localStorage on mount
+  useEffect(() => {
+    const savedCvData = localStorage.getItem('cvData');
+    if (savedCvData) {
+      setCvData(JSON.parse(savedCvData));
+    }
+  }, []);
 
   const handleSearch = async (query, location = '') => {
     if (!query.trim()) return;
@@ -178,15 +188,6 @@ export default function Home() {
         <meta property="og:description" content="Find verified jobs, internships, graduate programs, and bursaries. Instant AI-powered search across South Africa." />
         <meta property="og:url" content="https://futurelinked.co.za" />
         
-        {/* Google AdSense */}
-        {process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_ID && (
-          <script
-            async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_ID}`}
-            crossOrigin="anonymous"
-          />
-        )}
-        
         {/* Structured Data for SEO */}
         <script
           type="application/ld+json"
@@ -221,66 +222,131 @@ export default function Home() {
         <Header />
         
         <main className="flex-1">
-          {/* Hero Section */}
-          <div className={`${hasSearched ? 'py-8' : 'py-20'} search-gradient transition-all duration-500`}>
-            <div className="container mx-auto px-4 text-center">
+          {/* Hero Section - CLEAN & SIMPLE */}
+          <div className={`${hasSearched ? 'py-8' : 'py-24 md:py-36'} bg-gradient-to-br from-blue-400 via-blue-500 to-indigo-600 transition-all duration-500 relative overflow-hidden`}>
+            {/* Animated Background with Floating Icons */}
+            {!hasSearched && (
+              <>
+                <div className="absolute inset-0 opacity-10">
+                  <div className="absolute top-20 left-20 w-96 h-96 bg-white rounded-full blur-3xl"></div>
+                  <div className="absolute bottom-20 right-20 w-80 h-80 bg-white rounded-full blur-3xl"></div>
+                </div>
+                {/* Floating Graduation Hats and Laptops */}
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="absolute top-20 left-10 text-6xl opacity-20 animate-float" style={{animationDelay: '0s'}}>🎓</div>
+                  <div className="absolute top-40 right-20 text-5xl opacity-15 animate-float" style={{animationDelay: '1s'}}>💻</div>
+                  <div className="absolute bottom-32 left-1/4 text-5xl opacity-20 animate-float" style={{animationDelay: '2s'}}>🎓</div>
+                  <div className="absolute top-1/3 right-10 text-6xl opacity-15 animate-float" style={{animationDelay: '3s'}}>📚</div>
+                  <div className="absolute bottom-20 right-1/3 text-5xl opacity-20 animate-float" style={{animationDelay: '4s'}}>💼</div>
+                  <div className="absolute top-1/4 left-1/3 text-4xl opacity-15 animate-float" style={{animationDelay: '5s'}}>💻</div>
+                  <div className="absolute bottom-40 left-20 text-5xl opacity-20 animate-float" style={{animationDelay: '1.5s'}}>🎓</div>
+                  <div className="absolute top-1/2 right-1/4 text-4xl opacity-15 animate-float" style={{animationDelay: '2.5s'}}>📱</div>
+                </div>
+              </>
+            )}
+            
+            <div className="container mx-auto px-4 text-center relative z-10">
               {!hasSearched && (
                 <>
-                  <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
-                    FutureLinked ZA
-                  </h1>
-                  <p className="text-xl md:text-2xl text-blue-100 mb-6">
-                    Smart job search assistant for South Africa
-                  </p>
-                  <p className="text-lg text-blue-200 mb-4 max-w-3xl mx-auto">
-                    Making finding opportunities in South Africa simple, fast, and stress-free
-                  </p>
-                  <p className="text-md text-blue-300 mb-12 max-w-2xl mx-auto">
-                    Powered by Adzuna, Jooble & Google APIs • Multi-source search • No sign-ups • Just search
-                  </p>
+                  <div className="mb-16 animate-fadeIn max-w-5xl mx-auto">
+                    {/* Clear Hierarchy */}
+                    <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+                      Find Your Dream Job — Faster.
+                    </h1>
+                    <p className="text-xl md:text-2xl text-white/90 mb-12 max-w-3xl mx-auto font-normal leading-relaxed">
+                      Thousands of verified jobs, internships & bursaries. Updated daily.
+                    </p>
+                    
+                    {/* Reduced Badges - Only 2 Essential */}
+                    <div className="flex flex-wrap items-center justify-center gap-4 text-white text-sm md:text-base mb-12">
+                      <span className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
+                        <span className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></span>
+                        <span className="font-medium">✔️ Updated Daily</span>
+                      </span>
+                      <span className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
+                        <span className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></span>
+                        <span className="font-medium">✔️ No Sign-Up Required</span>
+                      </span>
+                    </div>
+                  </div>
                 </>
               )}
               
-              <div className="max-w-3xl mx-auto">
+              <div className="max-w-4xl mx-auto">
                 <SearchBar onSearch={handleSearch} loading={loading} />
                 
-                {/* Quick Search Buttons for Students */}
+                {/* Organized Sections - Clean & Professional */}
                 {!hasSearched && (
-                  <div className="mt-8">
-                    <p className="text-sm text-blue-200 mb-3 font-semibold text-center">🎓 Popular Student Searches:</p>
-                    <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
-                      <button
-                        onClick={() => handleSearch('bursary', '')}
-                        className="px-3 sm:px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full text-xs sm:text-sm font-medium transition-all border border-white border-opacity-30 backdrop-blur-sm"
-                      >
-                        💰 Bursaries
-                      </button>
-                      <button
-                        onClick={() => handleSearch('scholarship', '')}
-                        className="px-3 sm:px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full text-xs sm:text-sm font-medium transition-all border border-white border-opacity-30 backdrop-blur-sm"
-                      >
-                        🎯 Scholarships
-                      </button>
-                      <button
-                        onClick={() => handleSearch('internship', '')}
-                        className="px-3 sm:px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full text-xs sm:text-sm font-medium transition-all border border-white border-opacity-30 backdrop-blur-sm"
-                      >
-                        💼 Internships
-                      </button>
-                      <button
-                        onClick={() => handleSearch('graduate program', '')}
-                        className="px-3 sm:px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full text-xs sm:text-sm font-medium transition-all border border-white border-opacity-30 backdrop-blur-sm"
-                      >
-                        🎓 Graduate Programs
-                      </button>
-                      <button
-                        onClick={() => handleSearch('learnership', '')}
-                        className="px-3 sm:px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full text-xs sm:text-sm font-medium transition-all border border-white border-opacity-30 backdrop-blur-sm"
-                      >
-                        📚 Learnerships
-                      </button>
+                  <>
+                    {/* SECTION 1 — Key Stats (Clean & Minimal) */}
+                    <div className="mt-12 animate-fadeIn">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                        <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-8 border border-white/25 transition-all hover:bg-white/20 shadow-xl text-center">
+                          <div className="text-5xl font-bold text-white mb-2">10K+</div>
+                          <div className="text-sm text-white/90 font-medium">Active Jobs</div>
+                        </div>
+                        <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-8 border border-white/25 transition-all hover:bg-white/20 shadow-xl text-center">
+                          <div className="text-5xl font-bold text-white mb-2">500+</div>
+                          <div className="text-sm text-white/90 font-medium">Companies</div>
+                        </div>
+                        <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-8 border border-white/25 transition-all hover:bg-white/20 shadow-xl text-center">
+                          <div className="text-5xl font-bold text-white mb-2">24/7</div>
+                          <div className="text-sm text-white/90 font-medium">Live Updates</div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+
+                    {/* SECTION 2 — Categories for Students */}
+                    <div className="mt-16 animate-slideUp">
+                      <h2 className="text-2xl text-white mb-8 font-bold text-center">
+                        Categories for Students
+                      </h2>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
+                        <button
+                          onClick={() => handleSearch('bursary', '')}
+                          className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 text-white rounded-full py-4 px-6 font-semibold text-base transition-all hover:scale-105 shadow-lg"
+                        >
+                          🎓 Bursaries
+                        </button>
+                        <button
+                          onClick={() => handleSearch('scholarship', '')}
+                          className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 text-white rounded-full py-4 px-6 font-semibold text-base transition-all hover:scale-105 shadow-lg"
+                        >
+                          📝 Scholarships
+                        </button>
+                        <button
+                          onClick={() => handleSearch('internship', '')}
+                          className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 text-white rounded-full py-4 px-6 font-semibold text-base transition-all hover:scale-105 shadow-lg"
+                        >
+                          💼 Internships
+                        </button>
+                        <button
+                          onClick={() => handleSearch('graduate program', '')}
+                          className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 text-white rounded-full py-4 px-6 font-semibold text-base transition-all hover:scale-105 shadow-lg"
+                        >
+                          🎯 Graduate Programs
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* SECTION 3 — Popular Careers */}
+                    <div className="mt-16 animate-slideUp" style={{animationDelay: '0.1s'}}>
+                      <h2 className="text-2xl text-white mb-8 font-bold text-center">
+                        Popular Careers
+                      </h2>
+                      <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
+                        {['IT Jobs', 'Graduate Programs', 'Teaching', 'Engineering', 'Marketing', 'Data Analyst'].map((term, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleSearch(term, '')}
+                            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 text-white rounded-full py-3 px-6 font-semibold text-base transition-all hover:scale-105 shadow-lg"
+                          >
+                            {term}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -290,74 +356,101 @@ export default function Home() {
           {hasSearched && (
             <div className="container mx-auto px-4 py-8">
               {/* Breadcrumbs */}
-              <Breadcrumbs 
-                items={[
-                  { label: 'Search Results', href: null },
-                  { label: searchQuery, href: null }
-                ]}
-              />
-
-              {/* Top Ad Banner */}
-              <EnhancedAdBanner 
-                type="banner" 
-                className="mb-8"
-                adText="Sponsored Content"
-                placement="top"
-              />
+              <div className="mb-6">
+                <Breadcrumbs 
+                  items={[
+                    { label: 'Search Results', href: null },
+                    { label: searchQuery, href: null }
+                  ]}
+                />
+              </div>
 
               {/* Filter and Sort Controls */}
-              <FilterSort
-                onFilterChange={setFilters}
-                onSortChange={setSortBy}
-                resultsCount={filteredResults.length}
-              />
-
-              <SearchResults 
-                results={filteredResults}
-                loading={loading}
-                loadingMore={loadingMore}
-                query={searchQuery}
-                totalResults={totalResults}
-                currentCount={filteredResults.length}
-                onLoadMore={handleLoadMore}
-              />
-
-              {/* Middle Video Ad */}
-              {searchResults.length > 5 && (
-                <EnhancedAdBanner 
-                  type="video" 
-                  className="my-8"
-                  adText="Featured Content"
-                  placement="middle"
+              <div className="mb-6">
+                <FilterSort
+                  onFilterChange={setFilters}
+                  onSortChange={setSortBy}
+                  resultsCount={filteredResults.length}
                 />
-              )}
+              </div>
 
-              {/* Bottom Ad Banner */}
-              {searchResults.length > 3 && (
-                <EnhancedAdBanner 
-                  type="google-adsense" 
-                  className="mt-8"
-                  adText="Recommended for you"
-                  placement="bottom"
+              {/* Search Results */}
+              <div id="matched-jobs">
+                <SearchResults 
+                  results={filteredResults}
+                  loading={loading}
+                  loadingMore={loadingMore}
+                  query={searchQuery}
+                  totalResults={totalResults}
+                  currentCount={filteredResults.length}
+                  onLoadMore={handleLoadMore}
+                  cvData={cvData}
                 />
-              )}
+              </div>
             </div>
           )}
 
           {/* Features Section (when no search) */}
           {!hasSearched && (
             <>
-              {/* CV Templates Section - PROMINENTLY DISPLAYED */}
-              <div className="py-16 bg-gradient-to-br from-green-50 to-blue-50">
+              {/* Quick Features Overview */}
+              <div className="py-20 bg-gradient-to-br from-white to-gray-50">
                 <div className="container mx-auto px-4">
-                  <div className="text-center mb-12">
-                    <h2 className="text-4xl font-bold mb-3 text-gray-800">
-                      📄 Free CV & Application Templates
+                  <div className="text-center mb-16">
+                    <h2 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
+                      Why Choose FutureLinked ZA?
                     </h2>
-                    <p className="text-xl text-gray-600">Professional templates to boost your job applications</p>
+                    <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                      Everything you need to find and land your dream job
+                    </p>
                   </div>
                   
-                  <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-8">
+                  <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                    <div className="bg-white rounded-2xl p-8 text-center transform hover:scale-105 transition-all shadow-md hover:shadow-xl border border-gray-100">
+                      <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-green-500 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg">
+                        <span className="text-4xl">⚡</span>
+                      </div>
+                      <h3 className="text-xl font-bold mb-3 text-gray-800">Lightning Fast Search</h3>
+                      <p className="text-gray-600 leading-relaxed">Find thousands of jobs, internships, and bursaries in seconds with our powerful search</p>
+                    </div>
+                    
+                    <div className="bg-white rounded-2xl p-8 text-center transform hover:scale-105 transition-all shadow-md hover:shadow-xl border border-gray-100">
+                      <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg">
+                        <span className="text-4xl">✅</span>
+                      </div>
+                      <h3 className="text-xl font-bold mb-3 text-gray-800">Always Up-to-Date</h3>
+                      <p className="text-gray-600 leading-relaxed">Only the freshest opportunities updated daily, no outdated listings</p>
+                    </div>
+                    
+                    <div className="bg-white rounded-2xl p-8 text-center transform hover:scale-105 transition-all shadow-md hover:shadow-xl border border-gray-100">
+                      <div className="w-20 h-20 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg">
+                        <span className="text-4xl">💯</span>
+                      </div>
+                      <h3 className="text-xl font-bold mb-3 text-gray-800">Completely Free</h3>
+                      <p className="text-gray-600 leading-relaxed">No registration required, no hidden fees, just free access forever</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CV Templates Section - User Friendly */}
+              <div className="py-20 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+                <div className="container mx-auto px-4">
+                  <div className="text-center mb-16 animate-fadeIn">
+                    <div className="inline-block mb-4">
+                      <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-2.5 rounded-full text-sm font-semibold shadow-md">
+                        🎁 FREE RESOURCES
+                      </span>
+                    </div>
+                    <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-800">
+                      Professional Templates
+                    </h2>
+                    <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                      Download free, professionally-designed templates to boost your applications
+                    </p>
+                  </div>
+                  
+                  <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-10">
                     <TemplateDownloadCard
                       title="Professional CV Template"
                       icon="📝"
@@ -379,91 +472,111 @@ export default function Home() {
                   </div>
                   
                   <div className="text-center">
-                    <Link href="/resources" className="inline-block bg-primary-600 text-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-primary-700 transition-colors shadow-lg hover:shadow-xl">
-                      Download All Templates Free →
+                    <Link href="/resources" className="inline-flex items-center gap-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-10 py-4 rounded-full font-semibold text-lg hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg hover:shadow-xl transform hover:scale-105">
+                      <span>📥 Download All Templates Free</span>
+                      <span className="text-xl">→</span>
                     </Link>
                   </div>
                 </div>
               </div>
 
-              {/* Career Tips Section - Prominent */}
-              <div className="py-12 bg-gradient-to-r from-primary-600 to-purple-600">
+              {/* Career Tips Section - User Friendly */}
+              <div className="py-20 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
                 <div className="container mx-auto px-4">
-                  <h2 className="text-3xl font-bold text-center mb-3 text-white">
-                    🎯 Need Help With Your Job Search?
-                  </h2>
-                  <p className="text-center text-white text-lg mb-8">Free career guides to help you succeed</p>
+                  <div className="text-center mb-16">
+                    <h2 className="text-4xl md:text-5xl font-bold text-white mb-5">
+                      Career Success Guides
+                    </h2>
+                    <p className="text-xl text-white opacity-90 max-w-2xl mx-auto leading-relaxed">
+                      Expert advice and proven strategies to help you succeed
+                    </p>
+                  </div>
                   
-                  <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-                    <Link href="/articles/cv-writing-guide" className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
-                      <div className="text-4xl mb-3">📝</div>
-                      <h3 className="text-xl font-semibold mb-2 text-gray-800">CV Writing Guide</h3>
-                      <p className="text-gray-600 text-sm mb-3">Create a winning CV that gets interviews</p>
-                      <span className="text-primary-600 font-medium text-sm">Read Guide →</span>
+                  <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                    <Link href="/articles/cv-writing-guide" className="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all transform hover:scale-105 hover:-translate-y-1">
+                      <div className="text-6xl mb-5 group-hover:scale-110 transition-transform">📝</div>
+                      <h3 className="text-2xl font-bold mb-3 text-gray-800 group-hover:text-purple-600 transition-colors">CV Writing Guide</h3>
+                      <p className="text-gray-600 mb-5 leading-relaxed">Learn how to create a professional CV that stands out to employers</p>
+                      <span className="inline-flex items-center gap-2 text-purple-600 font-semibold group-hover:gap-3 transition-all">
+                        Read More
+                        <span className="text-lg">→</span>
+                      </span>
                     </Link>
                     
-                    <Link href="/articles/interview-guide" className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
-                      <div className="text-4xl mb-3">💼</div>
-                      <h3 className="text-xl font-semibold mb-2 text-gray-800">Interview Tips</h3>
-                      <p className="text-gray-600 text-sm mb-3">Ace your interview with expert advice</p>
-                      <span className="text-primary-600 font-medium text-sm">Read Guide →</span>
+                    <Link href="/articles/interview-guide" className="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all transform hover:scale-105 hover:-translate-y-1">
+                      <div className="text-6xl mb-5 group-hover:scale-110 transition-transform">💼</div>
+                      <h3 className="text-2xl font-bold mb-3 text-gray-800 group-hover:text-purple-600 transition-colors">Interview Mastery</h3>
+                      <p className="text-gray-600 mb-5 leading-relaxed">Master interview techniques and answer questions with confidence</p>
+                      <span className="inline-flex items-center gap-2 text-purple-600 font-semibold group-hover:gap-3 transition-all">
+                        Read More
+                        <span className="text-lg">→</span>
+                      </span>
                     </Link>
                     
-                    <Link href="/articles/salary-negotiation" className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
-                      <div className="text-4xl mb-3">💰</div>
-                      <h3 className="text-xl font-semibold mb-2 text-gray-800">Salary Negotiation</h3>
-                      <p className="text-gray-600 text-sm mb-3">Get paid what you're worth</p>
-                      <span className="text-primary-600 font-medium text-sm">Read Guide →</span>
+                    <Link href="/articles/salary-negotiation" className="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all transform hover:scale-105 hover:-translate-y-1">
+                      <div className="text-6xl mb-5 group-hover:scale-110 transition-transform">💰</div>
+                      <h3 className="text-2xl font-bold mb-3 text-gray-800 group-hover:text-purple-600 transition-colors">Salary Negotiation</h3>
+                      <p className="text-gray-600 mb-5 leading-relaxed">Get the salary you deserve with proven negotiation strategies</p>
+                      <span className="inline-flex items-center gap-2 text-purple-600 font-semibold group-hover:gap-3 transition-all">
+                        Read More
+                        <span className="text-lg">→</span>
+                      </span>
                     </Link>
                   </div>
                   
-                  <div className="text-center mt-6">
-                    <Link href="/resources" className="inline-block bg-white text-primary-600 px-6 py-3 rounded-full font-semibold hover:bg-gray-100 transition-colors">
+                  <div className="text-center mt-12">
+                    <Link href="/resources" className="inline-block bg-white text-purple-600 px-10 py-4 rounded-full font-semibold text-lg hover:bg-gray-50 transition-all shadow-lg hover:shadow-xl transform hover:scale-105">
                       View All Career Resources →
                     </Link>
                   </div>
                 </div>
               </div>
 
-              <div className="py-16 bg-white">
+              {/* Student-Focused Section */}
+              <div className="py-20 bg-gradient-to-br from-emerald-50 to-teal-50">
                 <div className="container mx-auto px-4">
-                  <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">
-                    Why Choose FutureLinked ZA?
-                  </h2>
+                  <div className="text-center mb-16">
+                    <h2 className="text-4xl md:text-5xl font-bold text-gray-800 mb-5">
+                      🎓 Built for South African Students
+                    </h2>
+                    <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                      We understand the unique challenges of finding opportunities in South Africa
+                    </p>
+                  </div>
                   
-                  <div className="grid md:grid-cols-3 gap-8">
-                    <div className="text-center p-6">
-                      <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-3xl">🎓</span>
+                  <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                    <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
+                      <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                        <span className="text-4xl">🎓</span>
                       </div>
-                      <h3 className="text-xl font-semibold mb-2">Student-Friendly</h3>
-                      <p className="text-gray-600">Find bursaries, scholarships, internships, and graduate programs easily with dedicated search filters.</p>
+                      <h3 className="text-xl font-bold mb-3 text-gray-800">Bursaries & Scholarships</h3>
+                      <p className="text-gray-600 leading-relaxed">Access hundreds of funding opportunities from top SA companies and institutions</p>
                     </div>
                     
-                    <div className="text-center p-6">
-                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-3xl">✅</span>
+                    <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
+                      <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                        <span className="text-4xl">💼</span>
                       </div>
-                      <h3 className="text-xl font-semibold mb-2">Fresh Opportunities</h3>
-                      <p className="text-gray-600">Only opportunities posted within the last 7 days - no old or expired listings.</p>
+                      <h3 className="text-xl font-bold mb-3 text-gray-800">Internships & Learnerships</h3>
+                      <p className="text-gray-600 leading-relaxed">Find hands-on experience opportunities to kickstart your career journey</p>
                     </div>
                     
-                    <div className="text-center p-6">
-                      <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-3xl">💯</span>
+                    <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
+                      <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                        <span className="text-4xl">�</span>
                       </div>
-                      <h3 className="text-xl font-semibold mb-2">100% Free</h3>
-                      <p className="text-gray-600">No registration required, no hidden fees. Search and apply for free, always.</p>
+                      <h3 className="text-xl font-bold mb-3 text-gray-800">Graduate Programs</h3>
+                      <p className="text-gray-600 leading-relaxed">Join structured programs at leading companies and build your professional network</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Additional Content Section */}
-              <div className="py-16 bg-gradient-to-br from-blue-50 to-purple-50">
+              <div className="py-20 bg-gradient-to-br from-slate-50 to-blue-50">
                 <div className="container mx-auto px-4">
                   <div className="max-w-4xl mx-auto">
-                    <h2 className="text-3xl font-bold text-center mb-8 text-gray-800">
+                    <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 text-gray-800">
                       Your Gateway to Career Success in South Africa
                     </h2>
                     

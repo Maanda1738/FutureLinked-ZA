@@ -1,5 +1,8 @@
 import '../styles/globals.css';
 import { SavedJobsProvider } from '../context/SavedJobsContext';
+import { ThemeProvider } from '../context/ThemeContext';
+import { BookmarkProvider } from '../context/BookmarkContext';
+import { CompanyFollowProvider } from '../context/CompanyFollowContext';
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 
@@ -43,8 +46,14 @@ export default function App({ Component, pageProps }) {
   }, [router.events]);
 
   return (
-    <SavedJobsProvider>
-      <Component {...pageProps} />
-    </SavedJobsProvider>
+    <ThemeProvider>
+      <CompanyFollowProvider>
+        <BookmarkProvider>
+          <SavedJobsProvider>
+            <Component {...pageProps} />
+          </SavedJobsProvider>
+        </BookmarkProvider>
+      </CompanyFollowProvider>
+    </ThemeProvider>
   );
 }

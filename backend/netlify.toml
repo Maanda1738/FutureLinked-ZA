@@ -6,6 +6,10 @@
 [build.environment]
   NODE_VERSION = "20.18.1"
 
+[functions]
+  # Support binary file uploads (PDFs, DOCs, etc.)
+  node_bundler = "esbuild"
+
 [[redirects]]
   from = "/cv/*"
   to = "/.netlify/functions/api/cv/:splat"

@@ -8,6 +8,22 @@ From job search to university applications, FutureLinked ZA is your trusted part
 
 ![Architecture Diagram](./architecture.svg)
 
+## 🆕 Latest Updates (November 2025)
+
+### New Features Added
+- ✅ **University & College Finder**: Browse 26 South African institutions with detailed course info, requirements, and fees
+- ✅ **Serverless Architecture**: Backend migrated to Netlify Functions for better scalability
+- ✅ **Memory-Based CV Processing**: CV uploads now work seamlessly in serverless environment
+- ✅ **Enhanced CORS Support**: Cross-origin requests properly configured for all endpoints
+- ✅ **Official University Logos**: Real branding from Wikipedia Commons for easy recognition
+
+### Technical Improvements
+- 🔧 Converted CV file storage from disk to memory-based (serverless-compatible)
+- 🔧 Updated Netlify configurations for separate frontend/backend deployment
+- 🔧 Fixed CORS policies to allow frontend-backend communication
+- 🔧 Optimized CV parsing to use Affinda's buffer API for serverless
+- 🔧 Added proper Node.js version management with .nvmrc
+
 ## 👨‍💻 About the Creator
 
 **Maanda Netshisumbewa** - Founder & Developer
@@ -63,8 +79,9 @@ FutureLinked ZA's mission is to democratize career opportunities in South Africa
 
 ### Backend
 - **Runtime**: Node.js with Express
+- **Serverless**: Netlify Functions (production)
 - **Caching**: In-memory cache with TTL (15 minutes)
-- **File Processing**: Multer for CV uploads
+- **File Processing**: Multer with memory storage (serverless-compatible)
 - **PDF Parsing**: PDF-parse for CV text extraction
 
 ### AI & APIs
@@ -82,9 +99,11 @@ FutureLinked ZA's mission is to democratize career opportunities in South Africa
 - **Application Tracking**: Local storage
 
 ### Deployment
-- **Frontend**: Vercel (recommended) or Netlify
-- **Backend**: Render, Railway, or Docker
-- **CDN**: Vercel Edge Network
+- **Frontend**: Netlify (with Next.js plugin)
+- **Backend**: Netlify Functions (serverless)
+- **Architecture**: Separate Netlify sites for frontend and backend
+- **CDN**: Netlify Edge Network
+- **CORS**: Configured for cross-origin requests
 
 ## 📦 Quick Start
 

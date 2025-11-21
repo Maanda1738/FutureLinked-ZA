@@ -66,14 +66,21 @@ export default function SmartCVMatcher({ onJobsFound }) {
 
     setUploading(true);
 
+    // Determine API URL based on environment (before try block to make it accessible throughout)
+    const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+    const API_URL = isProduction 
+      ? '/.netlify/functions/api'  // Netlify Functions
+      : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'); // Local backend
+
     try {
       // Step 1: Upload CV and extract data using BACKEND API (has working PDF parsing)
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      
       const formData = new FormData();
       formData.append('cv', file);
 
       console.log('📤 Uploading CV to backend:', `${API_URL}/cv/upload`);
       console.log('🔧 Using API_URL:', API_URL);
+      console.log('🌍 Environment:', isProduction ? 'Production (Netlify)' : 'Development (Local)');
       console.log('📦 File details:', { name: file.name, size: file.size, type: file.type });
       
       const uploadResponse = await fetch(`${API_URL}/cv/upload`, {
@@ -172,6 +179,7 @@ export default function SmartCVMatcher({ onJobsFound }) {
 
       let allJobs = [];
       
+      // Use the same API_URL that was defined at the start of processFile
       for (const query of searchQueries) {
         try {
           const searchResponse = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}&limit=10`);

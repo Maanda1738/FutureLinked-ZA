@@ -1,10 +1,10 @@
-# FutureLinked ZA
+# FutureLinked ZA 🚀
 
-**Smart job search assistant for South Africa**
+**Your Complete Career Platform for South Africa**
 
-FutureLinked is a smart job search assistant created by **Maanda Netshisumbewa**, designed to make finding opportunities in South Africa simple, fast, and stress-free.
+FutureLinked ZA is an all-in-one career platform created by **Maanda Netshisumbewa**, designed to help South Africans find jobs, improve their CVs, and discover educational opportunities—all powered by cutting-edge AI technology.
 
-Powered by intelligent automation and the Adzuna API, FutureLinked scans top company websites and job boards in real time to bring you the most relevant openings — all in one convenient place.
+From job search to university applications, FutureLinked ZA is your trusted partner in building a successful career in South Africa.
 
 ![Architecture Diagram](./architecture.svg)
 
@@ -12,23 +12,79 @@ Powered by intelligent automation and the Adzuna API, FutureLinked scans top com
 
 **Maanda Netshisumbewa** - Founder & Developer
 
-FutureLinked's mission is to bridge the gap between talent and opportunity through innovation, accessibility, and smart technology.
+FutureLinked ZA's mission is to democratize career opportunities in South Africa by leveraging AI, automation, and smart technology to make career development accessible to everyone.
 
-## 🚀 Features
+## ✨ Platform Features
 
-- **🤖 Intelligent Automation**: Powered by Adzuna API for real-time job listings
-- **🔍 Simple Search**: No sign-ups, no downloads, no complicated features
-- **⚡ Lightning Fast**: Get results in seconds
-- **🧭 Direct Applications**: Links directly to verified job portals
-- **🇿� South African Focus**: Thousands of verified opportunities across SA
+### 🎯 Smart Job Search
+- **AI-Powered Matching**: Upload your CV and get matched with jobs that fit your skills and experience level
+- **Multi-Source Search**: Integrated with Adzuna, Google Custom Search, and Jooble APIs
+- **Fresh Jobs Only**: Automatically filters jobs posted within the last 30 days
+- **Intelligent Filters**: Removes senior positions for junior candidates and vice versa
+- **Smart Scoring**: Match scores (0-100%) based on skills and job requirements
+- **Real-time Results**: Get 20+ relevant jobs in seconds
+
+### 📄 AI CV Tools
+- **Affinda CV Parser**: Extract skills, experience, and education automatically
+- **Google Gemini AI Editor**: 6 intelligent CV improvement tools
+  - ATS Optimization
+  - Language Enhancement
+  - Keyword Addition
+  - Achievement Quantification
+  - Custom Editing
+  - Complete Professional Rewrite
+- **CV Analysis**: Get ATS scores, suggestions, and career insights
+- **Smart Matching**: AI reads your CV to understand your career goals
+
+### 🎓 University & College Finder
+- **26 South African Institutions**: Complete database of universities and colleges
+- **All 9 Provinces Covered**: From UCT to University of Venda
+- **Detailed Course Information**: 
+  - Entry requirements (APS scores, subject prerequisites)
+  - Duration and fees
+  - Field of study categories
+  - Application links
+- **Smart Filters**: Search by province, institution type, and field of study
+- **Official Logos**: Real university branding for easy recognition
+
+### 💼 Additional Features
+- **Save Jobs**: Bookmark opportunities for later
+- **Application Tracking**: Keep track of jobs you've applied to
+- **Resources Hub**: Career guides, tips, and advice
+- **Mobile Responsive**: Works perfectly on all devices
 
 ## 🛠 Technology Stack
 
-- **Frontend**: Next.js + React + Tailwind CSS
-- **Backend**: Node.js + Express
-- **Caching**: In-memory cache with TTL
-- **Primary Data Source**: Adzuna API (52,315+ South African jobs)
-- **Deployment**: Vercel (frontend) + Render/Railway (backend)
+### Frontend
+- **Framework**: Next.js 14.2.33 with React
+- **Styling**: Tailwind CSS
+- **Icons**: React Icons
+- **State Management**: React Context API
+
+### Backend
+- **Runtime**: Node.js with Express
+- **Caching**: In-memory cache with TTL (15 minutes)
+- **File Processing**: Multer for CV uploads
+- **PDF Parsing**: PDF-parse for CV text extraction
+
+### AI & APIs
+- **CV Parsing**: Affinda API (professional CV data extraction)
+- **AI Analysis**: Google Gemini 1.5 Flash
+- **Job Search APIs**:
+  - Google Custom Search API (primary)
+  - Adzuna API (50,000+ SA jobs)
+  - Jooble API (international coverage)
+- **Authentication**: API key-based security
+
+### Database & Storage
+- **CV Data**: JSON-based storage
+- **Job Cache**: In-memory with automatic invalidation
+- **Application Tracking**: Local storage
+
+### Deployment
+- **Frontend**: Vercel (recommended) or Netlify
+- **Backend**: Render, Railway, or Docker
+- **CDN**: Vercel Edge Network
 
 ## 📦 Quick Start
 
@@ -80,16 +136,27 @@ Open [http://localhost:3000](http://localhost:3000) in your browser and start se
 Copy `backend/.env.example` to `backend/.env` and configure:
 
 ```env
-# Required
+# Server Configuration
 NODE_ENV=development
 PORT=3001
 FRONTEND_URL=http://localhost:3000
 
-# Optional API Keys (demo data used if not provided)
+# CV Parsing (Required for CV features)
+AFFINDA_API_KEY=your_affinda_api_key
+AFFINDA_WORKSPACE=your_workspace_id
+AFFINDA_REGION=api
+
+# AI Features (Required for CV analysis & editing)
+GEMINI_API_KEY=your_google_gemini_api_key
+
+# Job Search APIs
 ADZUNA_APP_ID=your_adzuna_app_id
 ADZUNA_API_KEY=your_adzuna_api_key
+JOOBLE_API_KEY=your_jooble_api_key
+GOOGLE_CSE_API_KEY=your_google_custom_search_key
+GOOGLE_CSE_ID=your_search_engine_id
 
-# Optional monetization
+# Optional Monetization
 GOOGLE_ADSENSE_ID=your_adsense_id
 ```
 
@@ -98,9 +165,32 @@ GOOGLE_ADSENSE_ID=your_adsense_id
 Create `frontend/.env.local`:
 
 ```env
+# Backend API
 NEXT_PUBLIC_API_URL=http://localhost:3001
+
+# AI Features (for client-side CV editing)
+NEXT_PUBLIC_GEMINI_API_KEY=your_google_gemini_api_key
+GEMINI_API_KEY=your_google_gemini_api_key
+
+# Optional Monetization
 NEXT_PUBLIC_GOOGLE_ADSENSE_ID=your_adsense_id
 ```
+
+### API Keys Setup Guide
+
+1. **Affinda CV Parser** (Required for CV features)
+   - Sign up at https://app.affinda.com
+   - Get API key and workspace ID
+   - Free tier: 100 documents/month
+
+2. **Google Gemini AI** (Required for AI features)
+   - Get API key from https://makersuite.google.com/app/apikey
+   - Free tier: Generous rate limits
+
+3. **Job Search APIs** (At least one recommended)
+   - **Google Custom Search**: https://developers.google.com/custom-search
+   - **Adzuna**: https://developer.adzuna.com
+   - **Jooble**: https://jooble.org/api/about
 
 ## 🚀 Deployment
 
@@ -137,15 +227,15 @@ pm2 start server.js --name futurelinked-api
 
 ## 📊 API Documentation
 
-### Search Endpoint
+### Job Search
 
 ```http
-GET /api/search?q=query&location=location&page=1&limit=20
+GET /search?q=query&location=location&page=1&limit=20
 ```
 
 **Parameters:**
-- `q` (required): Search query
-- `location` (optional): Job location
+- `q` (required): Search query (e.g., "Junior Data Analyst")
+- `location` (optional): Job location filter
 - `page` (optional): Page number (default: 1)
 - `limit` (optional): Results per page (default: 20)
 
@@ -156,16 +246,115 @@ GET /api/search?q=query&location=location&page=1&limit=20
   "results": [...],
   "total": 45,
   "page": 1,
-  "cached": false,
-  "sources": ["Adzuna", "Career24"],
+  "cached": true,
+  "sources": ["Google CSE", "Adzuna", "Jooble"],
   "timestamp": "2024-01-01T12:00:00Z"
 }
 ```
 
+### CV Upload & Parsing
+
+```http
+POST /cv/upload
+Content-Type: multipart/form-data
+```
+
+**Body:** CV file (PDF, DOCX, TXT)
+
+**Response:**
+```json
+{
+  "success": true,
+  "cvData": {
+    "name": "John Doe",
+    "email": "john@example.com",
+    "phone": "+27123456789",
+    "skills": ["Python", "SQL", "Data Analysis"],
+    "experience": {...},
+    "education": [...]
+  }
+}
+```
+
+### CV Analysis (Frontend API)
+
+```http
+POST /api/analyze-cv
+Content-Type: application/json
+```
+
+**Body:**
+```json
+{
+  "cvData": {
+    "text": "Full CV text...",
+    "skills": [...],
+    "experience": {...}
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "score": 85,
+  "atsScore": 90,
+  "description": "Experienced data analyst...",
+  "targetRoles": ["Junior Data Analyst", "Data Analyst"],
+  "experienceLevel": "entry",
+  "suggestions": [...],
+  "strengths": [...],
+  "weaknesses": [...]
+}
+```
+
+### CV Editing (Frontend API)
+
+```http
+POST /api/edit-cv
+Content-Type: application/json
+```
+
+**Body:**
+```json
+{
+  "cvData": {"text": "..."},
+  "editType": "ats-optimize",
+  "customInstructions": "Optional custom prompt"
+}
+```
+
+**Edit Types:**
+- `ats-optimize`: Optimize for ATS systems
+- `improve-language`: Enhance professional language
+- `add-keywords`: Add industry keywords
+- `quantify-achievements`: Add metrics
+- `complete-rewrite`: Full professional rewrite
+- `custom`: Custom AI editing
+
+### Smart Job Matching (Frontend API)
+
+```http
+POST /api/smart-job-match
+Content-Type: application/json
+```
+
+**Body:**
+```json
+{
+  "cvData": {
+    "skills": ["Python", "SQL"],
+    "desiredRoles": ["Data Analyst"]
+  }
+}
+```
+
+**Response:** Returns matched jobs with relevance scores
+
 ### Health Check
 
 ```http
-GET /api/health
+GET /health
 ```
 
 ## 🧪 Testing
@@ -213,36 +402,90 @@ Authorization: Bearer <admin_token>
 
 ## 🔍 Data Sources
 
-### APIs
-- **Adzuna**: Official job search API
-- **Custom scrapers**: Career24, Indeed ZA
+### Job Search APIs
+- **Google Custom Search API**: Primary source with fresh South African jobs
+- **Adzuna API**: 50,000+ verified South African opportunities
+- **Jooble API**: International job coverage
 
-### Adding New Sources
+### CV Parsing & AI
+- **Affinda API**: Professional-grade CV data extraction
+- **Google Gemini 1.5 Flash**: AI-powered CV analysis and editing
 
-1. Create scraper in `backend/services/scrapers/`
-2. Add to `jobService.js`
-3. Test with demo queries
+### University Database
+- **Static Database**: 26 South African institutions
+  - 17 Traditional Universities
+  - 6 Universities of Technology
+  - 3 Private Colleges
+- **All 9 Provinces**: Complete national coverage
+- **Official Logos**: Wikipedia public images
 
-## 📈 Analytics & Monitoring
+## 📊 Platform Statistics
 
-- **Google Analytics**: User behavior and traffic
-- **Sentry**: Error monitoring
-- **Custom metrics**: Search queries, click-through rates
+- **Job Sources**: 3 major APIs (Google, Adzuna, Jooble)
+- **Universities**: 26 institutions with 100+ courses
+- **CV Tools**: 6 AI-powered editing features
+- **Fresh Jobs**: Auto-filtered (≤30 days old)
+- **Cache Duration**: 15 minutes
+- **Match Accuracy**: Skill-based scoring algorithm
 
-## 🛡 Security
+## 🛡 Security & Performance
 
+### Security Features
+- API key authentication
+- CORS protection
 - Rate limiting on search endpoints
-- CORS configured for frontend domain
-- Environment variables for sensitive data
-- Helmet.js for security headers
+- Environment variable encryption
+- Secure file uploads (CV processing)
+- Input sanitization
+
+### Performance Optimizations
+- **Intelligent Caching**: 15-minute TTL reduces API calls
+- **Lazy Loading**: Universities load on demand
+- **Duplicate Removal**: Smart job deduplication
+- **Fresh Jobs Filter**: Only recent postings (30 days)
+- **Parallel API Calls**: Multi-source job aggregation
+- **Image Optimization**: Next.js automatic image handling
+
+## 🎯 Roadmap
+
+### Phase 1 (Current) ✅
+- [x] Multi-API job search
+- [x] AI CV parsing with Affinda
+- [x] Gemini-powered CV editing
+- [x] Smart job matching
+- [x] University finder (26 institutions)
+
+### Phase 2 (Coming Soon)
+- [ ] User accounts & profiles
+- [ ] Application tracking dashboard
+- [ ] Email job alerts
+- [ ] Interview preparation tools
+- [ ] Salary insights & trends
+- [ ] Company reviews
+
+### Phase 3 (Future)
+- [ ] Mobile app (React Native)
+- [ ] LinkedIn integration
+- [ ] AI interview simulator
+- [ ] Skills gap analysis
+- [ ] Career path recommendations
+- [ ] Networking features
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
+We welcome contributions! Here's how:
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/AmazingFeature`)
+3. **Commit** your changes (`git commit -m 'Add some AmazingFeature'`)
+4. **Push** to the branch (`git push origin feature/AmazingFeature`)
+5. **Open** a Pull Request
+
+### Contribution Guidelines
+- Follow existing code style
+- Add tests for new features
+- Update documentation
+- One feature per pull request
 
 ## 📝 License
 
@@ -250,13 +493,29 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## 👥 Team
 
-- **Maanda** - Project Creator & Developer
+**Maanda Netshisumbewa** - Creator, Developer & Founder
+- Full-stack development
+- AI integration
+- System architecture
+- UI/UX design
 
-## 📞 Support
+## 📞 Support & Contact
 
-- Email: support@futurelinkedza.co.za
-- Website: [futurelinkedza.co.za](https://futurelinkedza.co.za)
+- **Email**: <support@futurelinkedza.co.za>
+- **Website**: [futurelinkedza.co.za](https://futurelinkedza.co.za)
+- **GitHub**: [FutureLinked-ZA](https://github.com/Maanda1738/FutureLinked-ZA)
+
+## 🙏 Acknowledgments
+
+- **Affinda** for CV parsing API
+- **Google** for Gemini AI and Custom Search
+- **Adzuna** for job data API
+- **Jooble** for international job coverage
+- **Wikipedia** for university logos
+- South African developer community
 
 ---
 
-**Built with ❤️ for South African job seekers**
+**Built with ❤️ for South African job seekers by Maanda Netshisumbewa**
+
+*Empowering careers through AI and innovation*

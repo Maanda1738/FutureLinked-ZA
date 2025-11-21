@@ -90,6 +90,11 @@ export default function SmartCVMatcher({ onJobsFound }) {
       
       const cvData = uploadResult.cvData || uploadResult.data || uploadResult;
       
+      // Ensure CV data has text field for editor (combine all text if needed)
+      if (!cvData.text && cvData.summary) {
+        cvData.text = `${cvData.name || ''}\n${cvData.email || ''}\n${cvData.phone || ''}\n\n${cvData.summary || ''}\n\nSKILLS:\n${(cvData.skills || []).join(', ')}\n\nEXPERIENCE:\n${(cvData.experience?.roles || []).map(r => `${r.title} at ${r.company}\n${r.description || ''}`).join('\n\n')}\n\nEDUCATION:\n${(cvData.education || []).map(e => `${e.degree || e.field} at ${e.institution}`).join('\n')}`;
+      }
+      
       // Store CV data for editor
       setCVDataForEdit(cvData);
       
@@ -110,25 +115,139 @@ export default function SmartCVMatcher({ onJobsFound }) {
       const analysis = await analysisResponse.json();
       setAnalysisResult(analysis);
 
-      // Step 3: Find matching jobs
-      const jobsResponse = await fetch('/api/smart-job-match', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvData, analysis }),
-      });
-
-      if (!jobsResponse.ok) {
-        throw new Error('Failed to find matching jobs');
-      }
-
-      const jobs = await jobsResponse.json();
-      setMatchedJobs(jobs.matches || []);
+      // Step 3: Extract skills and intelligently determine job search queries
+      const topSkills = cvData.skills?.slice(0, 5) || [];
+      const rawDesiredRoles = cvData.desiredRoles || analysis.targetRoles || [];
       
-      // Notify parent component
-      if (onJobsFound) {
-        onJobsFound(jobs.matches || [], analysis);
+      // Detect seniority level from CV
+      const cvText = (cvData.text || cvData.summary || '').toLowerCase();
+      const isJunior = cvText.includes('junior') || cvText.includes('entry') || cvText.includes('graduate') || 
+                       cvText.includes('intern') || cvText.includes('beginner') || cvText.includes('fresher');
+      const experienceYears = cvData.totalExperience || 0;
+      
+      // Build smart search queries prioritizing job titles
+      let searchQueries = [];
+      
+      // Detect if CV is for data analyst roles
+      const isDataAnalyst = cvText.includes('data analyst') || cvText.includes('data analysis') ||
+                            rawDesiredRoles.some(r => r.toLowerCase().includes('data analyst'));
+      
+      if (isDataAnalyst) {
+        // Prioritize specific data analyst job title searches
+        searchQueries = [
+          'Junior Data Analyst',
+          'Entry Level Data Analyst',
+          'Graduate Data Analyst',
+          'Data Analyst Intern',
+          'Associate Data Analyst'
+        ];
+      } else if (isJunior || experienceYears < 2) {
+        // For other junior roles, add junior/entry-level prefix
+        searchQueries = rawDesiredRoles.slice(0, 2).map(role => `Junior ${role}`);
+        searchQueries.push(...rawDesiredRoles.slice(0, 2).map(role => `Entry Level ${role}`));
+      } else {
+        // For experienced candidates, use roles as-is
+        searchQueries = rawDesiredRoles.slice(0, 3);
+      }
+      
+      // Add top 2 relevant skills only if we have less than 3 queries
+      if (searchQueries.length < 3) {
+        searchQueries.push(...topSkills.slice(0, 2));
+      }
+      
+      console.log('🎯 Smart job search for:', { isJunior, isDataAnalyst, experienceYears, searchQueries });
+
+      let allJobs = [];
+      
+      for (const query of searchQueries) {
+        try {
+          const searchResponse = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}&limit=10`);
+          if (searchResponse.ok) {
+            const searchData = await searchResponse.json();
+            if (searchData.results) {
+              allJobs.push(...searchData.results);
+            }
+          }
+        } catch (err) {
+          console.warn(`Failed to search for: ${query}`, err);
+        }
       }
 
+      // Step 5: Remove duplicates, filter inappropriate jobs, and score matches
+      const uniqueJobs = [];
+      const seenIds = new Set();
+      
+      // Keywords to filter out senior/unsuitable positions
+      const seniorKeywords = ['senior', 'lead', 'principal', 'head of', 'director', 'manager', 'chief', 
+                              'vp', 'vice president', '5+ years', '5 years', '3+ years'];
+      
+      for (const job of allJobs) {
+        const jobId = job.id || `${job.title}-${job.company}`;
+        if (!seenIds.has(jobId)) {
+          const jobTitle = (job.title || '').toLowerCase();
+          const jobDesc = (job.description || '').toLowerCase();
+          const jobText = `${jobTitle} ${jobDesc} ${job.company || ''}`.toLowerCase();
+          
+          // Filter out senior positions for junior candidates
+          if (isJunior && seniorKeywords.some(keyword => jobTitle.includes(keyword))) {
+            console.log(`⛔ Filtered out senior role: ${job.title}`);
+            continue;
+          }
+          
+          seenIds.add(jobId);
+          
+          // Calculate match score with better weighting
+          let matchScore = 30; // Lower base score
+          
+          // Job title exact/close matches (+30 for exact, +20 for partial)
+          if (isDataAnalyst) {
+            if (jobTitle.includes('junior data analyst') || jobTitle.includes('entry level data analyst')) {
+              matchScore += 40; // Perfect match
+            } else if (jobTitle.includes('data analyst') && !seniorKeywords.some(k => jobTitle.includes(k))) {
+              matchScore += 30; // Good match
+            } else if (jobTitle.includes('analyst')) {
+              matchScore += 15; // Partial match
+            }
+          }
+          
+          // Seniority level match bonus
+          if (isJunior) {
+            if (jobTitle.includes('junior') || jobTitle.includes('entry') || jobTitle.includes('graduate')) {
+              matchScore += 15;
+            }
+          }
+          
+          // Skill matches (+3 per skill in title, +2 in description)
+          topSkills.forEach(skill => {
+            if (jobTitle.includes(skill.toLowerCase())) {
+              matchScore += 3;
+            } else if (jobDesc.includes(skill.toLowerCase())) {
+              matchScore += 2;
+            }
+          });
+          
+          // Role matches (+10 per role)
+          rawDesiredRoles.forEach(role => {
+            if (jobText.includes(role.toLowerCase())) {
+              matchScore += 10;
+            }
+          });
+          
+          uniqueJobs.push({
+            ...job,
+            matchScore: Math.min(100, matchScore)
+          });
+        }
+      }
+      
+      // Sort by match score
+      const rankedJobs = uniqueJobs
+        .sort((a, b) => b.matchScore - a.matchScore)
+        .slice(0, 20); // Top 20 matches
+      
+      setMatchedJobs(rankedJobs);
+      console.log(`✅ Found ${rankedJobs.length} matching jobs`);
+      
       setAnalyzing(false);
 
     } catch (err) {
@@ -330,10 +449,10 @@ export default function SmartCVMatcher({ onJobsFound }) {
                 <div className="mt-4 pt-4 border-t border-indigo-200">
                   <button
                     onClick={() => {
-                      setCVDataForEdit(cvData);
                       setShowEditor(true);
                     }}
-                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg font-bold hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                    disabled={!cvDataForEdit}
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg font-bold hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Wand2 className="w-5 h-5" />
                     Improve CV with AI Editor
@@ -386,7 +505,6 @@ export default function SmartCVMatcher({ onJobsFound }) {
                   </div>
                   <button
                     onClick={() => {
-                      setCVDataForEdit(cvData);
                       setShowEditor(true);
                     }}
                     className="mt-4 w-full bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-3 rounded-lg font-bold hover:from-red-700 hover:to-pink-700 transition-all flex items-center justify-center gap-2"
@@ -453,18 +571,76 @@ export default function SmartCVMatcher({ onJobsFound }) {
                 </div>
               )}
 
-              {/* View Matched Jobs Button */}
-              <div className="text-center pt-4">
-                <button 
-                  onClick={() => {
-                    document.getElementById('matched-jobs')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="inline-flex items-center gap-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-10 py-5 rounded-xl font-bold text-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-                >
-                  View Your {matchedJobs.length} Matched Jobs
-                  <ArrowRight className="w-6 h-6" />
-                </button>
-              </div>
+              {/* Matched Jobs Section */}
+              {matchedJobs.length > 0 && (
+                <div id="matched-jobs" className="mt-8 pt-8 border-t-4 border-indigo-200">
+                  <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                    <Target className="w-8 h-8 text-indigo-600" />
+                    Your Top {matchedJobs.length} Matched Jobs
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    {matchedJobs.map((job, index) => (
+                      <div 
+                        key={index}
+                        className="bg-white border-2 border-indigo-100 rounded-xl p-6 hover:shadow-lg transition-all hover:border-indigo-300"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h4 className="text-xl font-bold text-gray-800">{job.title}</h4>
+                              {job.matchScore && (
+                                <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                                  job.matchScore >= 80 ? 'bg-green-100 text-green-700' :
+                                  job.matchScore >= 60 ? 'bg-blue-100 text-blue-700' :
+                                  'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {job.matchScore}% Match
+                                </span>
+                              )}
+                            </div>
+                            
+                            <p className="text-indigo-600 font-semibold mb-2">{job.company}</p>
+                            
+                            {job.location && (
+                              <p className="text-sm text-gray-600 mb-2">📍 {job.location}</p>
+                            )}
+                            
+                            {job.description && (
+                              <p className="text-sm text-gray-700 line-clamp-2 mb-3">
+                                {job.description}
+                              </p>
+                            )}
+                            
+                            <div className="flex flex-wrap gap-2">
+                              {job.salary && (
+                                <span className="text-xs bg-green-50 text-green-700 px-3 py-1 rounded-full font-semibold">
+                                  💰 {job.salary}
+                                </span>
+                              )}
+                              {job.created && (
+                                <span className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+                                  📅 {job.created}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <a
+                            href={job.redirect_url || job.url || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-lg font-bold hover:from-indigo-700 hover:to-purple-700 transition-all whitespace-nowrap flex items-center gap-2"
+                          >
+                            Apply Now
+                            <ArrowRight className="w-4 h-4" />
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </>
         )}

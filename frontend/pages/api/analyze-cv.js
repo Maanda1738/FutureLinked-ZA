@@ -41,9 +41,18 @@ export default async function handler(req, res) {
     // Try Google Gemini analysis first, fallback to rule-based
     let analysis;
     
-    // Temporarily disable Gemini - use smart fallback analysis
-    console.log('📊 Using advanced rule-based analysis');
-    analysis = analyzeCVContent(cvDataForAnalysis);
+    if (process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY) {
+      try {
+        console.log('🤖 Using AI-powered CV analysis with Gemini');
+        analysis = await analyzeCVWithGemini(cvDataForAnalysis);
+      } catch (error) {
+        console.warn('⚠️ Gemini analysis failed, using rule-based fallback:', error.message);
+        analysis = analyzeCVContent(cvDataForAnalysis);
+      }
+    } else {
+      console.log('📊 Using rule-based analysis (Gemini API key not configured)');
+      analysis = analyzeCVContent(cvDataForAnalysis);
+    }
 
     return res.status(200).json(analysis);
   } catch (error) {
@@ -86,8 +95,11 @@ Provide your analysis in valid JSON format with these exact fields:
 }
 
 Analyze comprehensively:
-1. **ATS COMPATIBILITY**: Check if CV can be parsed by ATS systems (no tables, images, headers/footers issues)
-2. **CONTENT DESCRIPTION**: Describe who this candidate is and what they bring
+1. **CAREER GOALS**: Read the CV summary/objective carefully. What specific job role is this person seeking? Extract exact job titles they want (e.g., "Junior Data Analyst", "Software Developer", "Graphic Designer"). Look at their skills, education, and experience to infer their career direction.
+2. **SENIORITY LEVEL**: Determine if they're entry-level/junior (0-2 years), mid-level (3-5 years), or senior (6+ years). Look for keywords like "junior", "graduate", "entry-level", "intern" in their objective.
+3. **TARGET ROLES**: List 3-5 specific job titles this person should apply for based on their CV. Be specific (e.g., "Junior Data Analyst" not just "Analyst").
+4. **ATS COMPATIBILITY**: Check if CV can be parsed by ATS systems (no tables, images, headers/footers issues)
+5. **CONTENT DESCRIPTION**: Describe who this candidate is and what they bring
 3. **KEYWORD OPTIMIZATION**: Identify missing industry keywords and suggest additions
 4. **FORMAT & STRUCTURE**: Check for proper sections, bullet points, date formats
 5. **QUANTIFIABLE ACHIEVEMENTS**: Look for measurable results and impact
@@ -97,7 +109,7 @@ Analyze comprehensively:
 
 Return ONLY valid JSON, no markdown code blocks. Be specific, actionable, and prioritize ATS optimization. Provide 5-8 suggestions.`;
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`, {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -121,11 +133,25 @@ Return ONLY valid JSON, no markdown code blocks. Be specific, actionable, and pr
   }
 
   const data = await response.json();
-  const textResponse = data.candidates[0].content.parts[0].text;
+  
+  // Extract text from Gemini response
+  let textResponse;
+  if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+    textResponse = data.candidates[0].content.parts[0].text;
+  } else {
+    throw new Error('Invalid Gemini API response structure');
+  }
   
   // Remove markdown code blocks if present
   const jsonText = textResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-  const result = JSON.parse(jsonText);
+  
+  let result;
+  try {
+    result = JSON.parse(jsonText);
+  } catch (parseError) {
+    console.error('Failed to parse Gemini JSON response:', jsonText.substring(0, 500));
+    throw new Error('Invalid JSON from AI analysis');
+  }
 
   return {
     score: result.score || 70,
@@ -621,8 +647,16 @@ function generateCVDescription(cvData, text) {
   
   // Add education if present
   if (education.length > 0) {
-    const hasAdvanced = education.some(e => ['master', 'phd', 'doctorate'].some(deg => e.includes(deg)));
-    const hasBachelor = education.some(e => ['bachelor', 'degree', 'bsc', 'ba'].some(deg => e.includes(deg)));
+    const hasAdvanced = education.some(e => {
+      const eduStr = typeof e === 'string' ? e.toLowerCase() : 
+                     (e.degree || e.field || e.institution || '').toLowerCase();
+      return ['master', 'phd', 'doctorate'].some(deg => eduStr.includes(deg));
+    });
+    const hasBachelor = education.some(e => {
+      const eduStr = typeof e === 'string' ? e.toLowerCase() : 
+                     (e.degree || e.field || e.institution || '').toLowerCase();
+      return ['bachelor', 'degree', 'bsc', 'ba'].some(deg => eduStr.includes(deg));
+    });
     
     if (hasAdvanced) {
       description += 'Holds advanced degree(s). ';

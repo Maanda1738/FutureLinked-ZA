@@ -2,8 +2,25 @@
  * API Endpoint: AI-Powered CV Editor
  * POST /api/edit-cv
  * 
- * Uses OpenAI to intelligently edit and improve CV content
+ * Uses Google Gemini to intelligently edit and improve CV content
  */
+
+// Helper function to safely extract text from Gemini response
+function extractTextFromGeminiResponse(data) {
+  // Try different response structures
+  if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+    return data.candidates[0].content.parts[0].text.trim();
+  } else if (data.text) {
+    return data.text.trim();
+  } else if (data.generations && data.generations[0]?.text) {
+    return data.generations[0].text.trim();
+  } else if (data.choices && data.choices[0]?.message?.content) {
+    return data.choices[0].message.content.trim();
+  }
+  
+  console.error('Unexpected Gemini response structure:', JSON.stringify(data, null, 2));
+  throw new Error('Invalid response from AI service. Please check API key and try again.');
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -17,9 +34,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'CV data is required' });
     }
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY && !process.env.GEMINI_API_KEY) {
       return res.status(503).json({ 
-        error: 'AI editing is not available. OpenAI API key not configured.' 
+        error: 'AI editing is not available. Gemini API key not configured.' 
       });
     }
 
@@ -85,31 +102,33 @@ REQUIREMENTS:
 
 Return ONLY the reformatted CV text. Make it ATS-friendly while keeping all original information.`;
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert ATS optimization specialist. Reformat CVs for maximum ATS compatibility.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.3,
-      max_tokens: 3000
+      contents: [{
+        parts: [{
+          text: `You are an expert ATS optimization specialist. Reformat CVs for maximum ATS compatibility.\n\n${prompt}`
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 3000
+      }
     })
   });
 
+  if (!response.ok) {
+    const error = await response.json();
+    console.error('Gemini API error:', error);
+    throw new Error('AI service error: ' + (error.error?.message || 'Unknown error'));
+  }
+
   const data = await response.json();
-  const editedText = data.choices[0].message.content.trim();
+  const editedText = extractTextFromGeminiResponse(data);
 
   return {
     text: editedText,
@@ -142,31 +161,27 @@ IMPROVEMENTS TO MAKE:
 
 Return the improved CV text with better language throughout.`;
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert CV writer who improves language impact while keeping facts accurate.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.5,
-      max_tokens: 3000
+      contents: [{
+        parts: [{
+          text: `You are an expert CV writer who improves language impact while keeping facts accurate.\n\n${prompt}`
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.5,
+        maxOutputTokens: 3000
+      }
     })
   });
 
   const data = await response.json();
-  const editedText = data.choices[0].message.content.trim();
+  const editedText = data.candidates[0].content.parts[0].text.trim();
 
   return {
     text: editedText,
@@ -197,31 +212,27 @@ TASK:
 
 Return the CV with keywords added naturally throughout.`;
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a keyword optimization expert who adds relevant keywords naturally to CVs.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.4,
-      max_tokens: 3000
+      contents: [{
+        parts: [{
+          text: `You are a keyword optimization expert who adds relevant keywords naturally to CVs.\n\n${prompt}`
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.4,
+        maxOutputTokens: 3000
+      }
     })
   });
 
   const data = await response.json();
-  const editedText = data.choices[0].message.content.trim();
+  const editedText = data.candidates[0].content.parts[0].text.trim();
 
   return {
     text: editedText,
@@ -252,31 +263,27 @@ TASK:
 
 Return the CV with quantified achievements throughout.`;
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a CV expert who quantifies achievements with realistic numbers and metrics.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.4,
-      max_tokens: 3000
+      contents: [{
+        parts: [{
+          text: `You are a CV expert who quantifies achievements with realistic numbers and metrics.\n\n${prompt}`
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.4,
+        maxOutputTokens: 3000
+      }
     })
   });
 
   const data = await response.json();
-  const editedText = data.choices[0].message.content.trim();
+  const editedText = data.candidates[0].content.parts[0].text.trim();
 
   return {
     text: editedText,
@@ -302,31 +309,27 @@ ${instructions}
 
 Make the requested changes while keeping the CV professional and accurate. Return the edited CV.`;
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a professional CV editor who follows user instructions precisely.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.5,
-      max_tokens: 3000
+      contents: [{
+        parts: [{
+          text: `You are a professional CV editor who follows user instructions precisely.\n\n${prompt}`
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.5,
+        maxOutputTokens: 3000
+      }
     })
   });
 
   const data = await response.json();
-  const editedText = data.choices[0].message.content.trim();
+  const editedText = data.candidates[0].content.parts[0].text.trim();
 
   return {
     text: editedText,
@@ -356,31 +359,27 @@ CREATE A PROFESSIONAL CV WITH:
 
 Return a completely rewritten, professional CV that would impress any recruiter.`;
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a professional CV writer who creates exceptional, recruiter-approved CVs.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.6,
-      max_tokens: 3500
+      contents: [{
+        parts: [{
+          text: `You are a professional CV writer who creates exceptional, recruiter-approved CVs.\n\n${prompt}`
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.6,
+        maxOutputTokens: 3500
+      }
     })
   });
 
   const data = await response.json();
-  const editedText = data.choices[0].message.content.trim();
+  const editedText = data.candidates[0].content.parts[0].text.trim();
 
   return {
     text: editedText,

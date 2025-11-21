@@ -9,6 +9,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const mammoth = require('mammoth');
+const affindaService = require('../services/affindaService');
 
 // Import pdf-parse - it's a default export
 let pdfParse;
@@ -58,7 +59,7 @@ const upload = multer({
 
 /**
  * POST /api/cv/upload
- * Upload and parse CV
+ * Upload and parse CV using Affinda API only
  */
 router.post('/upload', upload.single('cv'), async (req, res) => {
   try {
@@ -66,32 +67,69 @@ router.post('/upload', upload.single('cv'), async (req, res) => {
       return res.status(400).json({ error: 'No CV file uploaded' });
     }
 
-    const cvText = await extractTextFromCV(req.file);
+    console.log('📄 Backend CV Upload - File:', req.file.originalname);
+
+    // Check if Affinda is configured
+    if (!process.env.AFFINDA_API_KEY || process.env.AFFINDA_API_KEY.length === 0) {
+      // Clean up file
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (e) {}
+      
+      return res.status(503).json({ 
+        error: 'Affinda API is not configured. Please add AFFINDA_API_KEY to environment variables.',
+        details: 'Professional CV parsing requires Affinda API'
+      });
+    }
+
+    // Parse with Affinda API
+    console.log('🔄 Parsing CV with Affinda API...');
+    const affindaData = await affindaService.parseCV(req.file.path, {
+      deleteAfterParse: true,
+      compact: false
+    });
     
-    console.log('📄 Backend CV Upload - Text Length:', cvText.length);
-    
-    // Limit text size to prevent payload issues (keep first 50KB which is ~50,000 characters)
-    const limitedText = cvText.substring(0, 50000);
-    console.log('📄 Limited text to:', limitedText.length, 'characters');
-    
-    // Extract key information
-    const skills = extractSkills(limitedText);
-    const experience = extractExperience(limitedText);
-    const education = extractEducation(limitedText);
-    const keywords = extractKeywords(limitedText);
-    const desiredRoles = extractDesiredRoles(limitedText);
+    console.log('✅ Affinda parsing successful');
     
     const cvData = {
       fileName: req.file.originalname,
       uploadDate: new Date().toISOString(),
-      text: limitedText,
-      skills,
-      experience,
-      education,
-      keywords: keywords.slice(0, 50),
-      desiredRoles,
-      summary: cvText.substring(0, 1000)
+      
+      // Personal information
+      name: affindaData.name,
+      email: affindaData.email,
+      phone: affindaData.phone,
+      location: affindaData.location,
+      
+      // Professional data
+      summary: affindaData.summary,
+      skills: affindaData.skills || [],
+      experience: {
+        years: affindaData.totalYearsExperience || 0,
+        roles: affindaData.experience || []
+      },
+      education: affindaData.education || [],
+      certifications: affindaData.certifications || [],
+      languages: affindaData.languages || [],
+      websites: affindaData.websites || [],
+      
+      // Keywords and matching
+      keywords: affindaData.keywords || [],
+      desiredRoles: affindaData.desiredRoles || [],
+      text: affindaData.raw?.rawText || '',
+      
+      // Metadata
+      parsedBy: 'Affinda API',
+      affindaIdentifier: affindaData.raw?.affindaIdentifier,
+      parsingConfidence: affindaData.raw?.confidence || 'high'
     };
+    
+    console.log('✅ CV parsed successfully with Affinda:', {
+      name: cvData.name,
+      skills: cvData.skills.length,
+      experience: cvData.experience.years,
+      education: cvData.education.length
+    });
 
     // Clean up uploaded file
     try {
@@ -102,14 +140,24 @@ router.post('/upload', upload.single('cv'), async (req, res) => {
 
     res.json({
       success: true,
-      message: 'CV uploaded successfully',
+      message: 'CV uploaded and parsed successfully with Affinda',
       data: cvData
     });
 
   } catch (error) {
     console.error('CV upload error:', error);
+    
+    // Clean up file on error
+    try {
+      if (req.file && req.file.path) {
+        fs.unlinkSync(req.file.path);
+      }
+    } catch (e) {
+      // Ignore cleanup errors
+    }
+    
     res.status(500).json({ 
-      error: 'Failed to process CV',
+      error: 'Failed to process CV with Affinda',
       details: error.message 
     });
   }
@@ -117,22 +165,44 @@ router.post('/upload', upload.single('cv'), async (req, res) => {
 
 /**
  * POST /api/cv/analyze
- * Analyze CV with OpenAI
+ * Analyze CV using Affinda parsed data
  */
 router.post('/analyze', async (req, res) => {
   try {
     const { cvData } = req.body;
 
-    if (!cvData || !cvData.text) {
-      return res.status(400).json({ error: 'CV data with text is required' });
+    if (!cvData) {
+      return res.status(400).json({ error: 'CV data is required' });
     }
 
-    let analysis;
+    console.log('📊 Analyzing Affinda-parsed CV data');
     
-    // Temporarily disable Gemini until model issues are resolved
-    // Use fallback analysis which is already smart and fast
-    console.log('📊 Using advanced fallback analysis');
-    analysis = analyzeCVFallback(cvData);
+    // Build analysis from Affinda structured data
+    const analysis = {
+      score: calculateCVScore(cvData),
+      atsScore: calculateATSScore(cvData),
+      description: generateDescription(cvData),
+      careerSummary: cvData.summary || 'Professional with diverse background',
+      
+      skills: cvData.skills || [],
+      
+      suggestions: generateSuggestions(cvData),
+      atsIssues: checkATSIssues(cvData),
+      
+      strengths: identifyStrengths(cvData),
+      weaknesses: identifyWeaknesses(cvData),
+      targetRoles: cvData.desiredRoles || [],
+      experienceLevel: cvData.experience?.years > 5 ? 'senior' : cvData.experience?.years > 2 ? 'mid' : 'entry',
+      
+      keyAchievements: extractAchievements(cvData),
+      missingKeywords: [],
+      formattingIssues: [],
+      recommendedSections: [],
+      
+      wordCount: cvData.text?.split(/\s+/).length || 0,
+      aiPowered: true,
+      provider: 'Affinda Professional Parsing'
+    };
 
     res.json(analysis);
 
@@ -165,6 +235,85 @@ router.post('/match-jobs', async (req, res) => {
   } catch (error) {
     console.error('Job matching error:', error);
     res.status(500).json({ error: 'Failed to find matching jobs' });
+  }
+});
+
+/**
+ * GET /api/cv/config
+ * Check Affinda API configuration status
+ */
+router.get('/config', async (req, res) => {
+  try {
+    const hasAffindaKey = !!(process.env.AFFINDA_API_KEY && process.env.AFFINDA_API_KEY.length > 0);
+    const hasWorkspace = !!(process.env.AFFINDA_WORKSPACE && process.env.AFFINDA_WORKSPACE.length > 0);
+    
+    res.json({
+      success: true,
+      affinda: {
+        configured: hasAffindaKey,
+        apiKey: hasAffindaKey ? '✓ Configured' : '✗ Not configured',
+        region: process.env.AFFINDA_REGION || 'api (default)',
+        workspace: hasWorkspace ? '✓ Configured' : '⚠ Not configured (optional)',
+        documentType: process.env.AFFINDA_DOCUMENT_TYPE || 'Not configured (optional)',
+        status: hasAffindaKey ? 'Professional parsing enabled' : 'Using basic extraction'
+      },
+      openai: {
+        configured: !!(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.length > 0),
+        status: process.env.OPENAI_API_KEY ? 'CV editing enabled' : 'CV editing disabled'
+      },
+      gemini: {
+        configured: !!(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.length > 0),
+        status: process.env.GEMINI_API_KEY ? 'CV analysis available' : 'Using fallback analysis'
+      }
+    });
+  } catch (error) {
+    console.error('Config check error:', error);
+    res.status(500).json({ error: 'Failed to check configuration' });
+  }
+});
+
+/**
+ * POST /api/cv/paraphrase
+ * Paraphrase and improve CV content using AI
+ */
+router.post('/paraphrase', async (req, res) => {
+  try {
+    const { cvData, section } = req.body;
+
+    if (!cvData) {
+      return res.status(400).json({ error: 'CV data is required' });
+    }
+
+    console.log('🔄 Paraphrasing CV content...');
+
+    // Use Gemini for paraphrasing
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        const paraphrased = await paraphraseWithGemini(cvData, section);
+        return res.json({
+          success: true,
+          paraphrased,
+          provider: 'Google Gemini'
+        });
+      } catch (geminiError) {
+        console.warn('Gemini paraphrasing failed:', geminiError.message);
+      }
+    }
+
+    // Fallback to basic improvements
+    const paraphrased = paraphraseFallback(cvData, section);
+    res.json({
+      success: true,
+      paraphrased,
+      provider: 'Basic Enhancement'
+    });
+
+  } catch (error) {
+    console.error('Paraphrasing error:', error);
+    res.status(500).json({ 
+      error: 'Failed to paraphrase CV',
+      details: error.message 
+    });
   }
 });
 
@@ -453,63 +602,145 @@ Focus on ATS compatibility, keyword optimization, and actionable improvements. R
   };
 }
 
-function analyzeCVFallback(cvData) {
-  // Enhanced fallback analysis with role detection
-  const text = cvData.text.toLowerCase();
-  const wordCount = cvData.text.split(/\s+/).length;
+function calculateCVScore(cvData) {
+  let score = 50; // Base score
   
-  // Detect primary role
-  let primaryRole = 'Professional';
-  let description = '';
+  // Name, email, phone (+15)
+  if (cvData.name) score += 5;
+  if (cvData.email) score += 5;
+  if (cvData.phone) score += 5;
   
-  if (text.includes('data analyst') || (text.includes('data') && text.includes('analyst'))) {
-    primaryRole = 'Data Analyst';
-    description = `${primaryRole} with experience in data analysis, visualization, and reporting. Skilled in ${cvData.skills?.slice(0, 3).join(', ')}.`;
-  } else if (text.includes('business analyst')) {
-    primaryRole = 'Business Analyst';
-    description = `${primaryRole} with expertise in business intelligence and requirements analysis.`;
-  } else if (text.includes('software developer') || text.includes('programmer')) {
-    primaryRole = 'Software Developer';
-    description = `${primaryRole} with ${cvData.experience?.years || 0} years of programming experience.`;
-  } else if (cvData.desiredRoles?.length > 0) {
-    primaryRole = cvData.desiredRoles[0];
-    description = `${primaryRole} with ${cvData.experience?.years || 0} years of experience. Strong skills in ${cvData.skills?.slice(0, 3).join(', ')}.`;
-  } else {
-    description = `Professional with ${cvData.experience?.years || 0} years of experience. Strong skills in ${cvData.skills?.slice(0, 3).join(', ')}.`;
+  // Skills (+20)
+  if (cvData.skills?.length >= 10) score += 20;
+  else if (cvData.skills?.length >= 5) score += 15;
+  else if (cvData.skills?.length > 0) score += 10;
+  
+  // Experience (+15)
+  if (cvData.experience?.years >= 5) score += 15;
+  else if (cvData.experience?.years >= 2) score += 10;
+  else if (cvData.experience?.years > 0) score += 5;
+  
+  return Math.min(100, score);
+}
+
+function calculateATSScore(cvData) {
+  let score = 60; // Base score
+  
+  // Contact info (+15)
+  if (cvData.email) score += 5;
+  if (cvData.phone) score += 5;
+  if (cvData.location) score += 5;
+  
+  // Skills presence (+15)
+  if (cvData.skills?.length >= 5) score += 15;
+  
+  // Experience structure (+10)
+  if (cvData.experience?.roles?.length > 0) score += 10;
+  
+  return Math.min(100, score);
+}
+
+function generateDescription(cvData) {
+  const years = cvData.experience?.years || 0;
+  const level = years >= 7 ? 'Senior' : years >= 3 ? 'Mid-level' : 'Entry-level';
+  const name = cvData.name || 'Professional';
+  const skills = cvData.skills?.slice(0, 3).join(', ') || 'various skills';
+  
+  return `${level} ${name} with ${years} years of experience. Proficient in ${skills}. ${cvData.summary || ''}`.trim();
+}
+
+function generateSuggestions(cvData) {
+  const suggestions = [];
+  
+  if (!cvData.summary || cvData.summary.length < 50) {
+    suggestions.push({
+      title: '📝 Add Professional Summary',
+      description: 'Include a compelling 2-3 sentence summary at the top of your CV',
+      priority: 'high',
+      category: 'Content'
+    });
   }
   
-  return {
-    score: 70,
-    atsScore: 75,
-    description,
-    careerSummary: `${primaryRole} with diverse skill set and proven track record`,
-    skills: cvData.skills || [],
-    suggestions: [
-      {
-        title: '📊 Quantify Achievements',
-        description: 'Add specific metrics and numbers to demonstrate impact',
-        priority: 'high',
-        category: 'Content'
-      },
-      {
-        title: '🎯 Add Keywords',
-        description: 'Include industry-specific keywords for better ATS compatibility',
-        priority: 'medium',
-        category: 'ATS'
-      }
-    ],
-    atsIssues: [],
-    strengths: ['Professional experience', 'Clear skill set', 'Relevant background'],
-    weaknesses: [],
-    targetRoles: cvData.desiredRoles?.length > 0 ? cvData.desiredRoles : [primaryRole],
-    experienceLevel: cvData.experience?.years > 5 ? 'senior' : cvData.experience?.years > 2 ? 'mid' : 'junior',
-    keyAchievements: [],
-    missingKeywords: [],
-    formattingIssues: [],
-    recommendedSections: [],
-    wordCount,
-    aiPowered: false
-  };
+  if (cvData.skills?.length < 10) {
+    suggestions.push({
+      title: '🎯 Expand Skills Section',
+      description: 'Add more relevant skills to improve ATS matching',
+      priority: 'medium',
+      category: 'Skills'
+    });
+  }
+  
+  if (cvData.experience?.roles?.length === 0) {
+    suggestions.push({
+      title: '💼 Add Work Experience',
+      description: 'Include detailed work experience with achievements',
+      priority: 'high',
+      category: 'Experience'
+    });
+  }
+  
+  return suggestions;
+}
+
+function checkATSIssues(cvData) {
+  const issues = [];
+  
+  if (!cvData.email) {
+    issues.push({
+      issue: 'Missing email address',
+      impact: 'High - Recruiters cannot contact you',
+      fix: 'Add a professional email address'
+    });
+  }
+  
+  if (!cvData.phone) {
+    issues.push({
+      issue: 'Missing phone number',
+      impact: 'Medium - Limits contact options',
+      fix: 'Add a phone number'
+    });
+  }
+  
+  return issues;
+}
+
+function identifyStrengths(cvData) {
+  const strengths = [];
+  
+  if (cvData.skills?.length >= 10) strengths.push('Diverse skill set');
+  if (cvData.experience?.years >= 5) strengths.push('Extensive experience');
+  if (cvData.education?.length > 0) strengths.push('Strong educational background');
+  if (cvData.certifications?.length > 0) strengths.push('Professional certifications');
+  if (cvData.languages?.length > 1) strengths.push('Multilingual');
+  
+  return strengths.length > 0 ? strengths : ['Professional background'];
+}
+
+function identifyWeaknesses(cvData) {
+  const weaknesses = [];
+  
+  if (!cvData.summary) weaknesses.push('Missing professional summary');
+  if (cvData.skills?.length < 5) weaknesses.push('Limited skills listed');
+  if (cvData.experience?.years === 0) weaknesses.push('No work experience dates');
+  
+  return weaknesses;
+}
+
+function extractAchievements(cvData) {
+  const achievements = [];
+  
+  cvData.experience?.roles?.forEach(role => {
+    if (role.description) {
+      const lines = role.description.split('\n');
+      lines.forEach(line => {
+        if (line.match(/\d+%|\$\d+|increased|improved|reduced|grew/i)) {
+          achievements.push(line.trim());
+        }
+      });
+    }
+  });
+  
+  return achievements.slice(0, 5);
 }
 
 async function findMatchingJobs(cvData, analysis) {
@@ -642,6 +873,121 @@ async function callOpenAIForEdit(cvData, editType, instructions) {
     improvements: 'CV has been improved',
     message: `CV ${editType} completed`
   };
+}
+
+async function paraphraseWithGemini(cvData, section = 'all') {
+  const fetch = (await import('node-fetch')).default;
+  
+  const prompt = `You are an expert CV writer and career coach. Paraphrase and professionally improve the following CV content. Make it more impactful, use strong action verbs, and ensure ATS compatibility.
+
+${section === 'all' ? 'FULL CV CONTENT:' : `${section.toUpperCase()} SECTION:`}
+${cvData.text.substring(0, 8000)}
+
+Requirements:
+- Keep all factual information accurate (names, dates, companies)
+- Use powerful action verbs (achieved, led, implemented, developed, etc.)
+- Quantify achievements where possible
+- Make it concise and impactful
+- Ensure ATS-friendly formatting
+- Maintain professional tone
+- Keep the same structure but improve wording
+
+Return the paraphrased content with clear sections:
+1. PROFESSIONAL SUMMARY (2-3 sentences)
+2. KEY SKILLS (bullet points)
+3. WORK EXPERIENCE (for each role: company, title, dates, 3-5 bullet points)
+4. EDUCATION
+5. CERTIFICATIONS (if any)`;
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{
+          text: prompt
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 4096
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Gemini API error: ${response.statusText} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  const paraphrasedText = data.candidates[0].content.parts[0].text;
+
+  return {
+    text: paraphrasedText,
+    sections: extractSections(paraphrasedText),
+    improvements: [
+      'Strengthened action verbs',
+      'Improved professional tone',
+      'Enhanced readability',
+      'Optimized for ATS systems'
+    ]
+  };
+}
+
+function paraphraseFallback(cvData, section) {
+  // Basic improvements without AI
+  let text = cvData.text;
+  
+  // Replace weak verbs with stronger alternatives
+  const verbReplacements = {
+    'did': 'executed',
+    'made': 'created',
+    'worked on': 'developed',
+    'helped': 'assisted',
+    'responsible for': 'managed',
+    'worked with': 'collaborated with',
+    'used': 'utilized'
+  };
+  
+  Object.entries(verbReplacements).forEach(([weak, strong]) => {
+    const regex = new RegExp(`\\b${weak}\\b`, 'gi');
+    text = text.replace(regex, strong);
+  });
+  
+  return {
+    text,
+    sections: {},
+    improvements: [
+      'Replaced weak verbs',
+      'Basic improvements applied'
+    ]
+  };
+}
+
+function extractSections(text) {
+  const sections = {};
+  
+  // Extract professional summary
+  const summaryMatch = text.match(/PROFESSIONAL SUMMARY[:\n]+([\s\S]+?)(?=\n\n|KEY SKILLS|$)/i);
+  if (summaryMatch) sections.summary = summaryMatch[1].trim();
+  
+  // Extract skills
+  const skillsMatch = text.match(/KEY SKILLS[:\n]+([\s\S]+?)(?=\n\n|WORK EXPERIENCE|$)/i);
+  if (skillsMatch) sections.skills = skillsMatch[1].trim();
+  
+  // Extract experience
+  const experienceMatch = text.match(/WORK EXPERIENCE[:\n]+([\s\S]+?)(?=\n\n|EDUCATION|$)/i);
+  if (experienceMatch) sections.experience = experienceMatch[1].trim();
+  
+  // Extract education
+  const educationMatch = text.match(/EDUCATION[:\n]+([\s\S]+?)(?=\n\n|CERTIFICATIONS|$)/i);
+  if (educationMatch) sections.education = educationMatch[1].trim();
+  
+  return sections;
 }
 
 module.exports = router;

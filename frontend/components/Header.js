@@ -55,6 +55,9 @@ export default function Header() {
                 </span>
               )}
             </Link>
+            <Link href="/universities" className="text-gray-600 hover:text-primary-600 transition-colors">
+              Universities
+            </Link>
             <Link href="/resources" className="text-gray-600 hover:text-primary-600 transition-colors">
               Resources
             </Link>
@@ -100,6 +103,13 @@ export default function Header() {
                     {savedCount}
                   </span>
                 )}
+              </Link>
+              <Link 
+                href="/universities" 
+                className="text-gray-600 hover:text-primary-600 transition-colors py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                🎓 Universities
               </Link>
               <Link 
                 href="/resources" 

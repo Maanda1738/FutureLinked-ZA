@@ -23,21 +23,8 @@ try {
   console.error('Failed to load pdf-parse:', e.message);
 }
 
-// Configure multer for CV uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../uploads/cvs');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const originalName = file.originalname || 'document.pdf';
-    cb(null, 'cv-' + uniqueSuffix + path.extname(originalName));
-  }
-});
+// Configure multer for CV uploads (in-memory for serverless)
+const storage = multer.memoryStorage(); // Use memory storage for Netlify Functions
 
 const upload = multer({
   storage: storage,
@@ -68,26 +55,26 @@ router.post('/upload', upload.single('cv'), async (req, res) => {
     }
 
     console.log('📄 Backend CV Upload - File:', req.file.originalname);
+    console.log('📦 File buffer size:', req.file.buffer ? req.file.buffer.length : 'N/A');
 
     // Check if Affinda is configured
     if (!process.env.AFFINDA_API_KEY || process.env.AFFINDA_API_KEY.length === 0) {
-      // Clean up file
-      try {
-        fs.unlinkSync(req.file.path);
-      } catch (e) {}
-      
       return res.status(503).json({ 
         error: 'Affinda API is not configured. Please add AFFINDA_API_KEY to environment variables.',
         details: 'Professional CV parsing requires Affinda API'
       });
     }
 
-    // Parse with Affinda API
+    // Parse with Affinda API using buffer (for serverless)
     console.log('🔄 Parsing CV with Affinda API...');
-    const affindaData = await affindaService.parseCV(req.file.path, {
-      deleteAfterParse: true,
-      compact: false
-    });
+    const affindaData = await affindaService.parseCVFromBuffer(
+      req.file.buffer,
+      req.file.originalname,
+      {
+        deleteAfterParse: true,
+        compact: false
+      }
+    );
     
     console.log('✅ Affinda parsing successful');
     
@@ -131,12 +118,8 @@ router.post('/upload', upload.single('cv'), async (req, res) => {
       education: cvData.education.length
     });
 
-    // Clean up uploaded file
-    try {
-      fs.unlinkSync(req.file.path);
-    } catch (e) {
-      console.log('Could not delete temp file:', e);
-    }
+    // Memory storage - no file cleanup needed
+    console.log('✨ Using memory storage - no file cleanup required');
 
     res.json({
       success: true,
@@ -147,7 +130,7 @@ router.post('/upload', upload.single('cv'), async (req, res) => {
   } catch (error) {
     console.error('CV upload error:', error);
     
-    // Clean up file on error
+    // No file cleanup needed with memory storage
     try {
       if (req.file && req.file.path) {
         fs.unlinkSync(req.file.path);

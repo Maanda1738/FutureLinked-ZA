@@ -7,8 +7,18 @@
   NODE_VERSION = "20.18.1"
 
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
+  from = "/cv/*"
+  to = "/.netlify/functions/api/cv/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/search*"
+  to = "/.netlify/functions/api/search:splat"
+  status = 200
+
+[[redirects]]
+  from = "/health"
+  to = "/.netlify/functions/api/health"
   status = 200
 
 [[redirects]]

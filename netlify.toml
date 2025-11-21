@@ -1,14 +1,12 @@
 [build]
   base = "frontend"
-  publish = ".next"
+  publish = "frontend/.next"
   command = "npm install && npm run build"
-
-[functions]
-  directory = "backend/netlify/functions"
-  node_bundler = "esbuild"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
 [build.environment]
-  NODE_VERSION = "18.17.0"
+  NODE_VERSION = "20.18.1"
+  NEXT_PUBLIC_API_URL = "https://futurelinked.netlify.app"
+  NEXT_PUBLIC_GOOGLE_ADSENSE_ID = "ca-pub-5675694305993193"

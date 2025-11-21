@@ -74,15 +74,28 @@ export default function SmartCVMatcher({ onJobsFound }) {
 
       console.log('📤 Uploading CV to backend:', `${API_URL}/cv/upload`);
       console.log('🔧 Using API_URL:', API_URL);
+      console.log('📦 File details:', { name: file.name, size: file.size, type: file.type });
       
       const uploadResponse = await fetch(`${API_URL}/cv/upload`, {
         method: 'POST',
         body: formData,
+      }).catch(err => {
+        console.error('❌ Fetch error:', err);
+        throw new Error(`Network error: ${err.message}`);
       });
 
+      console.log('📡 Response status:', uploadResponse.status, uploadResponse.statusText);
+
       if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to upload CV');
+        const errorText = await uploadResponse.text();
+        console.error('❌ Upload failed:', errorText);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText || 'Failed to upload CV' };
+        }
+        throw new Error(errorData.error || `Upload failed with status ${uploadResponse.status}`);
       }
 
       const uploadResult = await uploadResponse.json();

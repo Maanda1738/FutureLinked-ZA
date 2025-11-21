@@ -2,6 +2,32 @@
   base = "frontend"
   command = "npm run build"
   publish = ".next"
+  # Include backend functions
+  functions = "../backend/netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20.18.1"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# Backend function redirects
+[[redirects]]
+  from = "/api/cv/*"
+  to = "/.netlify/functions/api/cv/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/search*"
+  to = "/.netlify/functions/api/search:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/health"
+  to = "/.netlify/functions/api/health"
+  status = 200
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200

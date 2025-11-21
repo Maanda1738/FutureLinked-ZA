@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run install-backend && next build",
+    "install-backend": "cd ../backend && npm install",
     "start": "next start",
     "lint": "next lint",
     "export": "next build && next export"

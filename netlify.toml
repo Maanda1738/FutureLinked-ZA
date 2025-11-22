@@ -1,5 +1,5 @@
 [build]
-  command = "npm install --prefix frontend && npm run build --prefix frontend"
+  command = "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend"
   publish = "frontend/.next"
   functions = "backend/netlify/functions"
 
@@ -8,9 +8,7 @@
 
 [functions]
   node_bundler = "esbuild"
-
-[[plugins]]
-  package = "@netlify/plugin-functions-install-core"
+  included_files = ["backend/node_modules/**"]
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

@@ -2,9 +2,25 @@
   base = "frontend"
   command = "npm run build"
   publish = ".next"
+  functions = "../backend/netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20.18.1"
 
+[functions]
+  directory = "backend/netlify/functions"
+  node_bundler = "esbuild"
+  external_node_modules = ["canvas", "sqlite3"]
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/cv/*"
+  to = "/.netlify/functions/api/cv/:splat"
+  status = 200

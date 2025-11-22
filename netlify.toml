@@ -1,9 +1,7 @@
 [build]
-  base = "frontend"
-  command = "cd ../backend && npm install && cd ../frontend && npm run build"
-  publish = ".next"
-  # Include backend functions
-  functions = "../backend/netlify/functions"
+  command = "bash build.sh"
+  publish = "frontend/.next"
+  functions = "backend/netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20.18.1"

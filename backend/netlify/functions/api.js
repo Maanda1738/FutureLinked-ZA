@@ -90,9 +90,21 @@ function extractCVData(text, filename) {
 app.post('/cv/upload', upload.single('cv'), async (req, res) => {
   try {
     console.log('📄 CV Upload request received');
+    console.log('📦 Request method:', req.method);
+    console.log('📦 Content-Type:', req.headers['content-type']);
+    console.log('📦 Body keys:', Object.keys(req.body || {}));
+    console.log('📦 File present:', !!req.file);
     
     if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+      console.error('❌ No file in request. Body:', JSON.stringify(req.body));
+      return res.status(400).json({ 
+        error: 'No file uploaded',
+        debug: {
+          contentType: req.headers['content-type'],
+          bodyKeys: Object.keys(req.body || {}),
+          hasFile: !!req.file
+        }
+      });
     }
     
     console.log('📦 File:', req.file.originalname, 'Size:', req.file.size);
@@ -101,8 +113,10 @@ app.post('/cv/upload', upload.single('cv'), async (req, res) => {
     const ext = req.file.originalname.toLowerCase();
     
     if (ext.endsWith('.pdf')) {
+      console.log('🔄 Parsing PDF...');
       text = await parsePDF(req.file.buffer);
     } else if (ext.endsWith('.docx') || ext.endsWith('.doc')) {
+      console.log('🔄 Parsing DOCX...');
       text = await parseDOCX(req.file.buffer);
     } else {
       return res.status(400).json({ error: 'Unsupported file type. Use PDF or DOCX.' });
@@ -120,9 +134,11 @@ app.post('/cv/upload', upload.single('cv'), async (req, res) => {
     
   } catch (error) {
     console.error('❌ CV upload error:', error);
+    console.error('❌ Stack:', error.stack);
     return res.status(500).json({ 
       error: 'Failed to process CV',
-      details: error.message 
+      details: error.message,
+      stack: error.stack
     });
   }
 });

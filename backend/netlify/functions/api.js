@@ -1,4 +1,4 @@
-const Busboy = require('busboy');
+const multipart = require('parse-multipart-data');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 
@@ -75,119 +75,107 @@ function extractCVData(text, filename) {
 
 // CV Upload handler
 async function handleCVUpload(event) {
-  return new Promise((resolve, reject) => {
-    try {
-      console.log('📄 CV Upload request received');
-      
-      const contentType = event.headers['content-type'] || event.headers['Content-Type'] || '';
-      
-      if (!contentType.includes('multipart/form-data')) {
-        resolve({
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({ error: 'Content-Type must be multipart/form-data' })
-        });
-        return;
-      }
-      
-      // Parse multipart with Busboy
-      const busboy = Busboy({ headers: { 'content-type': contentType } });
-      let fileBuffer = null;
-      let filename = '';
-      
-      busboy.on('file', (fieldname, file, info) => {
-        filename = info.filename;
-        const chunks = [];
-        
-        file.on('data', (chunk) => {
-          chunks.push(chunk);
-        });
-        
-        file.on('end', () => {
-          fileBuffer = Buffer.concat(chunks);
-          console.log('📦 File received:', filename, 'Size:', fileBuffer.length);
-        });
-      });
-      
-      busboy.on('finish', async () => {
-        if (!fileBuffer || !filename) {
-          resolve({
-            statusCode: 400,
-            headers,
-            body: JSON.stringify({ error: 'No file found in upload' })
-          });
-          return;
-        }
-        
-        try {
-          // Parse file based on extension
-          let text = '';
-          const ext = filename.toLowerCase();
-          
-          if (ext.endsWith('.pdf')) {
-            console.log('🔄 Parsing PDF...');
-            text = await parsePDF(fileBuffer);
-          } else if (ext.endsWith('.docx') || ext.endsWith('.doc')) {
-            console.log('🔄 Parsing DOCX...');
-            text = await parseDOCX(fileBuffer);
-          } else {
-            resolve({
-              statusCode: 400,
-              headers,
-              body: JSON.stringify({ error: 'Unsupported file type. Use PDF or DOCX.' })
-            });
-            return;
-          }
-          
-          console.log('✅ Parsed text length:', text.length);
-          
-          const cvData = extractCVData(text, filename);
-          
-          resolve({
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({
-              success: true,
-              cvData,
-              message: 'CV uploaded and parsed successfully'
-            })
-          });
-        } catch (error) {
-          console.error('❌ Parse error:', error);
-          resolve({
-            statusCode: 500,
-            headers,
-            body: JSON.stringify({ 
-              error: 'Failed to parse CV',
-              details: error.message
-            })
-          });
-        }
-      });
-      
-      busboy.on('error', (error) => {
-        console.error('❌ Busboy error:', error);
-        resolve({
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({ error: 'Failed to parse multipart data' })
-        });
-      });
-      
-      // Write the body to busboy
-      const body = event.isBase64Encoded ? Buffer.from(event.body, 'base64') : event.body;
-      busboy.write(body);
-      busboy.end();
-      
-    } catch (error) {
-      console.error('❌ Upload error:', error);
-      resolve({
-        statusCode: 500,
+  try {
+    console.log('📄 CV Upload request received');
+    console.log('📦 Content-Type:', event.headers['content-type']);
+    console.log('📦 isBase64Encoded:', event.isBase64Encoded);
+    
+    const contentType = event.headers['content-type'] || event.headers['Content-Type'] || '';
+    
+    if (!contentType.includes('multipart/form-data')) {
+      return {
+        statusCode: 400,
         headers,
-        body: JSON.stringify({ error: error.message })
-      });
+        body: JSON.stringify({ error: 'Content-Type must be multipart/form-data' })
+      };
     }
-  });
+    
+    // Get boundary from content-type
+    const boundary = multipart.getBoundary(contentType);
+    if (!boundary) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'No boundary found in Content-Type' })
+      };
+    }
+    
+    // Decode body
+    const bodyBuffer = event.isBase64Encoded 
+      ? Buffer.from(event.body, 'base64') 
+      : Buffer.from(event.body);
+    
+    // Parse multipart data
+    const parts = multipart.parse(bodyBuffer, boundary);
+    
+    if (!parts || parts.length === 0) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'No file found in upload' })
+      };
+    }
+    
+    // Get the first file part
+    const filePart = parts.find(part => part.filename);
+    
+    if (!filePart) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'No file found in upload' })
+      };
+    }
+    
+    const filename = filePart.filename;
+    const fileBuffer = filePart.data;
+    
+    console.log('📦 File:', filename, 'Size:', fileBuffer.length);
+    
+    // Parse file based on extension
+    let text = '';
+    const ext = filename.toLowerCase();
+    
+    if (ext.endsWith('.pdf')) {
+      console.log('🔄 Parsing PDF...');
+      text = await parsePDF(fileBuffer);
+    } else if (ext.endsWith('.docx') || ext.endsWith('.doc')) {
+      console.log('🔄 Parsing DOCX...');
+      text = await parseDOCX(fileBuffer);
+    } else {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Unsupported file type. Use PDF or DOCX.' })
+      };
+    }
+    
+    console.log('✅ Parsed text length:', text.length);
+    
+    const cvData = extractCVData(text, filename);
+    
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        cvData,
+        message: 'CV uploaded and parsed successfully'
+      })
+    };
+    
+  } catch (error) {
+    console.error('❌ Upload error:', error);
+    console.error('❌ Stack:', error.stack);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ 
+        error: 'Failed to process CV',
+        details: error.message
+      })
+    };
+  }
 }
 
 // Search handler

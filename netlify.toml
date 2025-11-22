@@ -1,10 +1,15 @@
 [build]
   command = "bash build.sh"
   publish = "frontend/.next"
-  functions = "backend/netlify/functions"
+  functions = "netlify-functions"
 
 [build.environment]
   NODE_VERSION = "20.18.1"
+
+[functions]
+  directory = "netlify-functions"
+  node_bundler = "esbuild"
+  external_node_modules = ["canvas", "puppeteer"]
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

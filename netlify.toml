@@ -1,11 +1,10 @@
 [build]
-  command = "cd backend/netlify/functions && npm install && cd ../../../frontend && npm install && npm run build"
+  command = "npm install --prefix backend/netlify/functions && npm install --prefix frontend && npm run build --prefix frontend"
   publish = "frontend/.next"
   functions = "backend/netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20.18.1"
-  # Force rebuild - 2025-11-22
 
 [functions]
   node_bundler = "esbuild"

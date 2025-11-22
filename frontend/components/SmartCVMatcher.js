@@ -68,9 +68,21 @@ export default function SmartCVMatcher({ onJobsFound }) {
 
     // Determine API URL based on environment (before try block to make it accessible throughout)
     const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
-    const API_URL = isProduction 
-      ? '/.netlify/functions/api'  // Netlify Functions
-      : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'); // Local backend
+    // Primary external backend (Render / other) if provided
+    const externalBackend = process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.trim().length > 0
+      ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+      : null;
+    // Netlify function fallback path
+    const netlifyFunctionBase = '/.netlify/functions/api';
+    // Local dev fallback
+    const localBackend = 'http://localhost:3001';
+    // Decide initial target sequence
+    const apiTargets = [];
+    if (externalBackend) apiTargets.push(externalBackend);
+    if (isProduction) apiTargets.push(netlifyFunctionBase); // only meaningful on deployed site
+    apiTargets.push(localBackend); // always last fallback for local testing
+
+    console.log('🔁 API target preference order:', apiTargets);
 
     try {
       // Step 1: Upload CV and extract data using BACKEND API (has working PDF parsing)
@@ -78,18 +90,33 @@ export default function SmartCVMatcher({ onJobsFound }) {
       const formData = new FormData();
       formData.append('cv', file);
 
-      console.log('📤 Uploading CV to backend:', `${API_URL}/cv/upload`);
-      console.log('🔧 Using API_URL:', API_URL);
-      console.log('🌍 Environment:', isProduction ? 'Production (Netlify)' : 'Development (Local)');
-      console.log('📦 File details:', { name: file.name, size: file.size, type: file.type });
-      
-      const uploadResponse = await fetch(`${API_URL}/cv/upload`, {
-        method: 'POST',
-        body: formData,
-      }).catch(err => {
-        console.error('❌ Fetch error:', err);
-        throw new Error(`Network error: ${err.message}`);
-      });
+      let uploadResultResponse = null;
+      let chosenBase = null;
+      let lastError = null;
+      for (const base of apiTargets) {
+        try {
+          const url = `${base}/cv/upload`;
+          console.log('📤 Attempting CV upload to:', url);
+          const resp = await fetch(url, { method: 'POST', body: formData });
+          if (resp.ok) {
+            uploadResultResponse = resp;
+            chosenBase = base;
+            console.log('✅ Upload succeeded at:', base);
+            break;
+          } else {
+            const text = await resp.text();
+            console.warn(`⚠️ Upload failed at ${base} status ${resp.status}:`, text);
+            lastError = new Error(text || `Upload failed with status ${resp.status}`);
+            // If explicit 404 on netlify function base, keep trying others
+          }
+        } catch (e) {
+          console.warn('⚠️ Network error on', base, e.message);
+          lastError = e;
+        }
+      }
+      if (!uploadResultResponse) {
+        throw lastError || new Error('All upload targets failed');
+      }
 
       console.log('📡 Response status:', uploadResponse.status, uploadResponse.statusText);
 
@@ -105,7 +132,7 @@ export default function SmartCVMatcher({ onJobsFound }) {
         throw new Error(errorData.error || `Upload failed with status ${uploadResponse.status}`);
       }
 
-      const uploadResult = await uploadResponse.json();
+      const uploadResult = await uploadResultResponse.json();
       console.log('✅ CV uploaded successfully:', uploadResult);
       
       const cvData = uploadResult.cvData || uploadResult.data || uploadResult;
@@ -180,18 +207,29 @@ export default function SmartCVMatcher({ onJobsFound }) {
       let allJobs = [];
       
       // Use the same API_URL that was defined at the start of processFile
+      // For searching reuse the successful base if available; else iterate targets until success per query
+      const searchBasePreference = chosenBase ? [chosenBase, ...apiTargets.filter(b => b !== chosenBase)] : apiTargets;
       for (const query of searchQueries) {
-        try {
-          const searchResponse = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}&limit=10`);
-          if (searchResponse.ok) {
-            const searchData = await searchResponse.json();
-            if (searchData.results) {
-              allJobs.push(...searchData.results);
+        let searchSuccess = false;
+        for (const base of searchBasePreference) {
+          try {
+            const searchUrl = `${base}/search?q=${encodeURIComponent(query)}&limit=10&source=all`;
+            const searchResponse = await fetch(searchUrl);
+            if (searchResponse.ok) {
+              const searchData = await searchResponse.json();
+              if (searchData.results) {
+                allJobs.push(...searchData.results);
+                searchSuccess = true;
+                break;
+              }
+            } else {
+              console.warn('Search failed at', base, 'status', searchResponse.status);
             }
+          } catch (err) {
+            console.warn(`Network error searching '${query}' at ${base}:`, err.message);
           }
-        } catch (err) {
-          console.warn(`Failed to search for: ${query}`, err);
         }
+        if (!searchSuccess) console.warn('❌ All search targets failed for query:', query);
       }
 
       // Step 5: Remove duplicates, filter inappropriate jobs, and score matches

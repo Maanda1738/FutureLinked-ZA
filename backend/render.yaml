@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: futurelinked-backend
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: AFFINDA_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: CORS_ORIGIN
+        value: https://futurelinked-za.co.za
+    healthCheckPath: /health

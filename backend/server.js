@@ -18,6 +18,7 @@ app.use(cors({
     'http://localhost:3001', 
     'http://localhost:3002', 
     'http://localhost:3003',
+    'https://futurelinked-za.co.za',
     'https://futurelinked.netlify.app',
     'https://*.netlify.app' // Allows all Netlify preview deployments
   ],

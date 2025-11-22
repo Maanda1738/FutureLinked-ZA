@@ -1,27 +1,13 @@
-const serverless = require('serverless-http');
-const express = require('express');
-const multer = require('multer');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 
-const app = express();
-
-// CORS middleware
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.sendStatus(200);
-  next();
-});
-
-app.use(express.json());
-
-// Multer for file uploads (memory storage for serverless)
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }
-});
+// CORS headers
+const headers = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Content-Type': 'application/json'
+};
 
 // Parse PDF
 async function parsePDF(buffer) {
@@ -86,147 +72,194 @@ function extractCVData(text, filename) {
   };
 }
 
-// CV Upload endpoint
-app.post('/cv/upload', upload.single('cv'), async (req, res) => {
+// CV Upload handler
+async function handleCVUpload(event) {
   try {
     console.log('📄 CV Upload request received');
-    console.log('📦 Request method:', req.method);
-    console.log('📦 Content-Type:', req.headers['content-type']);
-    console.log('📦 Body keys:', Object.keys(req.body || {}));
-    console.log('📦 File present:', !!req.file);
     
-    if (!req.file) {
-      console.error('❌ No file in request. Body:', JSON.stringify(req.body));
-      return res.status(400).json({ 
-        error: 'No file uploaded',
-        debug: {
-          contentType: req.headers['content-type'],
-          bodyKeys: Object.keys(req.body || {}),
-          hasFile: !!req.file
-        }
-      });
+    // Parse multipart form data
+    const contentType = event.headers['content-type'] || event.headers['Content-Type'] || '';
+    
+    if (!contentType.includes('multipart/form-data')) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Content-Type must be multipart/form-data' })
+      };
     }
     
-    console.log('📦 File:', req.file.originalname, 'Size:', req.file.size);
+    // Decode base64 body (Netlify encodes binary data)
+    const body = event.isBase64Encoded ? Buffer.from(event.body, 'base64') : Buffer.from(event.body, 'binary');
     
+    // Simple multipart parser (extract file from body)
+    const boundary = contentType.split('boundary=')[1];
+    if (!boundary) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'No boundary found in Content-Type' })
+      };
+    }
+    
+    // Extract file data from multipart body
+    const parts = body.toString('binary').split(`--${boundary}`);
+    let fileBuffer = null;
+    let filename = '';
+    
+    for (const part of parts) {
+      if (part.includes('filename=')) {
+        const filenameMatch = part.match(/filename="([^"]+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+          // Extract file content (after double newline)
+          const fileStart = part.indexOf('\r\n\r\n') + 4;
+          const fileEnd = part.lastIndexOf('\r\n');
+          if (fileStart > 3 && fileEnd > fileStart) {
+            const fileContent = part.substring(fileStart, fileEnd);
+            fileBuffer = Buffer.from(fileContent, 'binary');
+          }
+        }
+      }
+    }
+    
+    if (!fileBuffer || !filename) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'No file found in upload' })
+      };
+    }
+    
+    console.log('📦 File:', filename, 'Size:', fileBuffer.length);
+    
+    // Parse file based on extension
     let text = '';
-    const ext = req.file.originalname.toLowerCase();
+    const ext = filename.toLowerCase();
     
     if (ext.endsWith('.pdf')) {
       console.log('🔄 Parsing PDF...');
-      text = await parsePDF(req.file.buffer);
+      text = await parsePDF(fileBuffer);
     } else if (ext.endsWith('.docx') || ext.endsWith('.doc')) {
       console.log('🔄 Parsing DOCX...');
-      text = await parseDOCX(req.file.buffer);
+      text = await parseDOCX(fileBuffer);
     } else {
-      return res.status(400).json({ error: 'Unsupported file type. Use PDF or DOCX.' });
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Unsupported file type. Use PDF or DOCX.' })
+      };
     }
     
     console.log('✅ Parsed text length:', text.length);
     
-    const cvData = extractCVData(text, req.file.originalname);
+    const cvData = extractCVData(text, filename);
     
-    return res.json({
-      success: true,
-      cvData,
-      message: 'CV uploaded and parsed successfully'
-    });
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        cvData,
+        message: 'CV uploaded and parsed successfully'
+      })
+    };
     
   } catch (error) {
     console.error('❌ CV upload error:', error);
     console.error('❌ Stack:', error.stack);
-    return res.status(500).json({ 
-      error: 'Failed to process CV',
-      details: error.message,
-      stack: error.stack
-    });
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ 
+        error: 'Failed to process CV',
+        details: error.message
+      })
+    };
   }
-});
+}
 
-// Search endpoint
-app.get('/search', async (req, res) => {
+// Search handler
+async function handleSearch(event) {
   try {
-    const query = req.query.q || '';
+    const query = event.queryStringParameters?.q || '';
     console.log('🔍 Search query:', query);
     
     // Return mock jobs for now
-    return res.json({
-      success: true,
-      results: [
-        {
-          id: '1',
-          title: 'Junior Developer - ' + query,
-          company: 'Tech Company',
-          location: 'Remote',
-          description: 'Entry-level position for ' + query,
-          source: 'internal',
-          url: '#',
-          matchScore: 85
-        },
-        {
-          id: '2',
-          title: 'Graduate Program - ' + query,
-          company: 'Innovation Hub',
-          location: 'Johannesburg',
-          description: 'Graduate opportunity in ' + query,
-          source: 'internal',
-          url: '#',
-          matchScore: 80
-        }
-      ],
-      count: 2
-    });
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        results: [
+          {
+            id: '1',
+            title: 'Junior Developer - ' + query,
+            company: 'Tech Company',
+            location: 'Remote',
+            description: 'Entry-level position for ' + query,
+            source: 'internal',
+            url: '#',
+            matchScore: 85
+          },
+          {
+            id: '2',
+            title: 'Graduate Program - ' + query,
+            company: 'Innovation Hub',
+            location: 'Johannesburg',
+            description: 'Graduate opportunity in ' + query,
+            source: 'internal',
+            url: '#',
+            matchScore: 80
+          }
+        ],
+        count: 2
+      })
+    };
   } catch (error) {
     console.error('❌ Search error:', error);
-    return res.status(500).json({ error: 'Search failed' });
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: 'Search failed' })
+    };
   }
-});
+}
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// Root handler for testing
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'FutureLinked ZA API',
-    endpoints: {
-      health: '/.netlify/functions/api/health',
-      search: '/.netlify/functions/api/search',
-      cv: '/.netlify/functions/api/cv/upload'
-    }
-  });
-});
-
-// 404 handler - log unmatched routes
-app.use((req, res, next) => {
-  console.log(`⚠️ Route not found: ${req.method} ${req.path}`);
-  console.log('Headers:', JSON.stringify(req.headers, null, 2));
-  res.status(404).json({ 
-    error: 'Route not found',
-    method: req.method,
-    path: req.path,
-    availableEndpoints: [
-      '/.netlify/functions/api/health',
-      '/.netlify/functions/api/search',
-      '/.netlify/functions/api/cv/upload'
-    ]
-  });
-});
-
-// Error handling
-app.use((err, req, res, next) => {
-  console.error('❌ Error:', err);
-  console.error('Stack:', err.stack);
-  res.status(500).json({ 
-    error: 'Internal server error',
-    message: err.message,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
-  });
-});
-
-// Export serverless handler with binary support for file uploads
-module.exports.handler = serverless(app, {
-  binary: ['multipart/form-data', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-});
+// Main handler function
+exports.handler = async (event, context) => {
+  console.log('🚀 Function invoked:', event.httpMethod, event.path);
+  
+  // Handle CORS preflight
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
+  }
+  
+  // Route: CV Upload
+  if (event.path.includes('/cv/upload') && event.httpMethod === 'POST') {
+    return await handleCVUpload(event);
+  }
+  
+  // Route: Search
+  if (event.path.includes('/search') && event.httpMethod === 'GET') {
+    return await handleSearch(event);
+  }
+  
+  // Route: Health
+  if (event.path.includes('/health')) {
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() })
+    };
+  }
+  
+  // Default response
+  return {
+    statusCode: 200,
+    headers,
+    body: JSON.stringify({ 
+      message: 'FutureLinked API',
+      endpoints: ['/cv/upload', '/search', '/health']
+    })
+  };
+};

@@ -130,47 +130,53 @@ export default function SmartCVMatcher({ onJobsFound }) {
       const analysis = await analysisResponse.json();
       setAnalysisResult(analysis);
 
-      // Step 3: Extract skills and intelligently determine job search queries
+      // Step 3: Extract skills and build BROAD job search queries
       const topSkills = cvData.skills?.slice(0, 5) || [];
       const rawDesiredRoles = cvData.desiredRoles || analysis.targetRoles || [];
       
       // Detect seniority level from CV
       const cvText = (cvData.text || cvData.summary || '').toLowerCase();
       const isJunior = cvText.includes('junior') || cvText.includes('entry') || cvText.includes('graduate') || 
-                       cvText.includes('intern') || cvText.includes('beginner') || cvText.includes('fresher');
-      const experienceYears = cvData.totalExperience || 0;
+                       cvText.includes('intern') || cvText.includes('beginner') || cvText.includes('fresher') ||
+                       cvText.includes('seeking opportunities');
+      const experienceYears = cvData.totalExperience || cvData.experience?.years || 0;
       
-      // Build smart search queries prioritizing job titles
+      // Build DIVERSE search queries to get variety of jobs
       let searchQueries = [];
       
-      // Detect if CV is for data analyst roles
-      const isDataAnalyst = cvText.includes('data analyst') || cvText.includes('data analysis') ||
-                            rawDesiredRoles.some(r => r.toLowerCase().includes('data analyst'));
-      
-      if (isDataAnalyst) {
-        // Prioritize specific data analyst job title searches
-        searchQueries = [
-          'Junior Data Analyst',
-          'Entry Level Data Analyst',
-          'Graduate Data Analyst',
-          'Data Analyst Intern',
-          'Associate Data Analyst'
-        ];
-      } else if (isJunior || experienceYears < 2) {
-        // For other junior roles, add junior/entry-level prefix
-        searchQueries = rawDesiredRoles.slice(0, 2).map(role => `Junior ${role}`);
-        searchQueries.push(...rawDesiredRoles.slice(0, 2).map(role => `Entry Level ${role}`));
-      } else {
-        // For experienced candidates, use roles as-is
-        searchQueries = rawDesiredRoles.slice(0, 3);
+      // Priority 1: Use AI-detected target roles from analysis (most accurate)
+      if (analysis.targetRoles && analysis.targetRoles.length > 0) {
+        searchQueries.push(...analysis.targetRoles.slice(0, 3));
+        console.log('✅ Using AI-detected roles:', analysis.targetRoles);
+      }
+      // Priority 2: Use CV declared desired roles
+      else if (rawDesiredRoles && rawDesiredRoles.length > 0) {
+        searchQueries.push(...rawDesiredRoles.slice(0, 3));
+      }
+      // Priority 3: Use top skills as search terms for broader results
+      else {
+        searchQueries.push(...topSkills.slice(0, 3));
       }
       
-      // Add top 2 relevant skills only if we have less than 3 queries
-      if (searchQueries.length < 3) {
+      // Add skill-based searches for variety (top 2 skills)
+      if (topSkills.length > 0) {
         searchQueries.push(...topSkills.slice(0, 2));
       }
       
-      console.log('🎯 Smart job search for:', { isJunior, isDataAnalyst, experienceYears, searchQueries });
+      // Add general entry-level searches for juniors
+      if (isJunior || experienceYears < 2) {
+        searchQueries.push('Entry Level', 'Graduate Program', 'Junior Position');
+      }
+      
+      // Remove duplicates and limit to 6 diverse queries
+      searchQueries = [...new Set(searchQueries)].slice(0, 6);
+      
+      console.log('🎯 Diverse job search for:', { 
+        experienceYears, 
+        isJunior,
+        aiRoles: analysis.targetRoles,
+        searchQueries 
+      });
 
       let allJobs = [];
       
@@ -194,13 +200,13 @@ export default function SmartCVMatcher({ onJobsFound }) {
         }
       }
 
-      // Step 5: Remove duplicates, filter inappropriate jobs, and score matches
+      // Step 5: Remove duplicates and score ALL jobs (no filtering, just scoring)
       const uniqueJobs = [];
       const seenIds = new Set();
       
-      // Keywords to filter out senior/unsuitable positions
-      const seniorKeywords = ['senior', 'lead', 'principal', 'head of', 'director', 'manager', 'chief', 
-                              'vp', 'vice president', '5+ years', '5 years', '3+ years'];
+      // Keywords to identify senior positions (for scoring, not filtering)
+      const seniorKeywords = ['senior', 'lead', 'principal', 'head of', 'director', 'chief', 
+                              'vp', 'vice president', '10+ years', '8+ years'];
       
       for (const job of allJobs) {
         const jobId = job.id || `${job.title}-${job.company}`;
@@ -209,45 +215,47 @@ export default function SmartCVMatcher({ onJobsFound }) {
           const jobDesc = (job.description || '').toLowerCase();
           const jobText = `${jobTitle} ${jobDesc} ${job.company || ''}`.toLowerCase();
           
-          // Filter out senior positions for junior candidates
-          if (isJunior && seniorKeywords.some(keyword => jobTitle.includes(keyword))) {
-            console.log(`⛔ Filtered out senior role: ${job.title}`);
-            continue;
-          }
-          
           seenIds.add(jobId);
           
-          // Calculate match score with better weighting
-          let matchScore = 30; // Lower base score
+          // Calculate match score - START WITH 50 (show all jobs)
+          let matchScore = 50; 
           
-          // Job title exact/close matches (+30 for exact, +20 for partial)
-          if (isDataAnalyst) {
-            if (jobTitle.includes('junior data analyst') || jobTitle.includes('entry level data analyst')) {
-              matchScore += 40; // Perfect match
-            } else if (jobTitle.includes('data analyst') && !seniorKeywords.some(k => jobTitle.includes(k))) {
-              matchScore += 30; // Good match
-            } else if (jobTitle.includes('analyst')) {
-              matchScore += 15; // Partial match
-            }
+          // Reduce score for senior positions if junior candidate
+          if (isJunior && seniorKeywords.some(keyword => jobTitle.includes(keyword))) {
+            matchScore -= 20; // Lower priority, but still show
           }
           
-          // Seniority level match bonus
+          // Boost score for entry-level if junior
           if (isJunior) {
-            if (jobTitle.includes('junior') || jobTitle.includes('entry') || jobTitle.includes('graduate')) {
-              matchScore += 15;
+            if (jobTitle.includes('junior') || jobTitle.includes('entry') || jobTitle.includes('graduate') || 
+                jobTitle.includes('intern') || jobTitle.includes('trainee')) {
+              matchScore += 25;
             }
           }
           
-          // Skill matches (+3 per skill in title, +2 in description)
+          // Skill matches (+5 per skill in title, +3 in description)
           topSkills.forEach(skill => {
-            if (jobTitle.includes(skill.toLowerCase())) {
+            const skillLower = skill.toLowerCase();
+            if (jobTitle.includes(skillLower)) {
+              matchScore += 5;
+            } else if (jobDesc.includes(skillLower)) {
               matchScore += 3;
-            } else if (jobDesc.includes(skill.toLowerCase())) {
-              matchScore += 2;
             }
           });
           
-          // Role matches (+10 per role)
+          // AI target role matches (+15 per role - highest priority)
+          if (analysis.targetRoles) {
+            analysis.targetRoles.forEach(role => {
+              const roleLower = role.toLowerCase();
+              if (jobTitle.includes(roleLower)) {
+                matchScore += 15;
+              } else if (jobText.includes(roleLower)) {
+                matchScore += 8;
+              }
+            });
+          }
+          
+          // CV desired role matches (+10 per role)
           rawDesiredRoles.forEach(role => {
             if (jobText.includes(role.toLowerCase())) {
               matchScore += 10;

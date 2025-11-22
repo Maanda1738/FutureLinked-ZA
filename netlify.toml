@@ -1,6 +1,6 @@
 [build]
   base = "frontend"
-  command = "npm run build"
+  command = "cd ../backend && npm install && cd ../frontend && npm run build"
   publish = ".next"
   # Include backend functions
   functions = "../backend/netlify/functions"

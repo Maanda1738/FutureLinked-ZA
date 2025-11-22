@@ -5,6 +5,7 @@
 
 [build.environment]
   NODE_VERSION = "20.18.1"
+  # Force rebuild - 2025-11-22
 
 [functions]
   node_bundler = "esbuild"

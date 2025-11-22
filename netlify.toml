@@ -8,29 +8,3 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-
-# (Temporary) No serverless functions until proper minimal function structure is prepared.
-
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
-
-# Backend function redirects
-[[redirects]]
-  from = "/api/cv/*"
-  to = "/.netlify/functions/api/cv/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/api/search*"
-  to = "/.netlify/functions/api/search:splat"
-  status = 200
-
-[[redirects]]
-  from = "/api/health"
-  to = "/.netlify/functions/api/health"
-  status = 200
-
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
-  status = 200

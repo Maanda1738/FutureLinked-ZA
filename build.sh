@@ -6,6 +6,9 @@ cd backend
 npm install
 cd ..
 
-echo "Building frontend..."
+echo "Installing frontend dependencies..."
 cd frontend
+npm install
+
+echo "Building frontend..."
 npm run build

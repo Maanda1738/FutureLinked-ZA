@@ -1,7 +1,8 @@
 const multipart = require('parse-multipart-data');
-const pdfParse = require('pdf-parse');
-const mammoth = require('mammoth');
 const axios = require('axios');
+// Lazy load pdf-parse and mammoth only when needed to avoid DOMMatrix errors
+let pdfParse = null;
+let mammoth = null;
 
 // CORS headers
 const headers = {
@@ -14,6 +15,10 @@ const headers = {
 // Parse PDF
 async function parsePDF(buffer) {
   try {
+    // Lazy load pdf-parse only when needed
+    if (!pdfParse) {
+      pdfParse = require('pdf-parse');
+    }
     const data = await pdfParse(buffer);
     return data.text;
   } catch (error) {
@@ -24,6 +29,10 @@ async function parsePDF(buffer) {
 // Parse DOCX
 async function parseDOCX(buffer) {
   try {
+    // Lazy load mammoth only when needed
+    if (!mammoth) {
+      mammoth = require('mammoth');
+    }
     const result = await mammoth.extractRawText({ buffer });
     return result.value;
   } catch (error) {

@@ -1,5 +1,5 @@
 [build]
-  command = "cd frontend && npm install && npm run build"
+  command = "cd backend && npm install && cd ../frontend && npm install && npm run build"
   publish = "frontend/.next"
   functions = "backend/netlify/functions"
 
@@ -8,8 +8,7 @@
 
 [functions]
   node_bundler = "esbuild"
-  external_node_modules = ["canvas", "sqlite3", "axios", "mammoth", "pdf-parse"]
-  included_files = ["backend/package.json", "backend/node_modules/**"]
+  external_node_modules = ["canvas", "sqlite3"]
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

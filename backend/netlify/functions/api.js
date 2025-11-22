@@ -7,33 +7,74 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
-// CV Upload handler
+// CV Upload handler - returns data for frontend to analyze
 async function handleCVUpload(event) {
   try {
     console.log('CV Upload received');
+    
+    // Extract basic info from the uploaded file if possible
+    // For now, return structured mock data that the frontend analyze-cv endpoint will process
+    const cvData = {
+      fileName: 'cv-uploaded.pdf',
+      uploadDate: new Date().toISOString(),
+      name: 'Job Seeker',
+      email: 'jobseeker@example.com',
+      phone: '+27 123 456 7890',
+      skills: ['Data Analysis', 'Excel', 'Power BI', 'SQL', 'Communication', 'Teamwork', 'Problem Solving', 'Time Management'],
+      experience: { 
+        years: 2, 
+        roles: ['Junior Data Analyst', 'Data Intern'] 
+      },
+      education: ['BCom in Economics', 'Matric Certificate'],
+      desiredRoles: ['Junior Data Analyst', 'Data Analyst', 'Business Analyst'],
+      text: `OBJECTIVE: Seeking a Junior Data Analyst position to leverage my Excel, Power BI, and SQL skills in a dynamic team environment.
+
+SKILLS:
+- Data Analysis & Visualization (Excel, Power BI, Tableau)
+- SQL & Database Management
+- Statistical Analysis
+- Report Generation
+- Communication & Presentation
+- Team Collaboration
+- Problem Solving
+
+EXPERIENCE:
+Junior Data Analyst - ABC Company (Jan 2023 - Present)
+- Analyzed sales data using Excel and Power BI
+- Created interactive dashboards for management
+- Generated weekly reports on key metrics
+- Collaborated with cross-functional teams
+
+Data Analyst Intern - XYZ Corp (Jun 2022 - Dec 2022)
+- Assisted in data collection and cleaning
+- Performed statistical analysis on customer data
+- Contributed to report automation projects
+
+EDUCATION:
+BCom in Economics - University of Johannesburg (2018-2021)
+Matric Certificate - High School (2017)`,
+      summary: 'Junior Data Analyst with 2 years of experience in data analysis, visualization, and reporting using Excel, Power BI, and SQL.',
+      totalExperience: 2
+    };
+    
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         success: true,
-        data: {
-          fileName: 'cv.pdf',
-          uploadDate: new Date().toISOString(),
-          name: 'Job Seeker',
-          email: 'contact@example.com',
-          phone: '+27123456789',
-          skills: ['Communication', 'Teamwork', 'Problem Solving'],
-          experience: { years: 1, roles: [] },
-          education: [],
-          text: 'CV uploaded successfully'
-        }
+        data: cvData,
+        cvData: cvData // Also include as cvData for compatibility
       })
     };
   } catch (error) {
+    console.error('CV Upload error:', error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ success: false, error: error.message })
+      body: JSON.stringify({ 
+        success: false, 
+        error: error.message 
+      })
     };
   }
 }

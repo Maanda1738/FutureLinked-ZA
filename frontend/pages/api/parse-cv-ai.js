@@ -18,6 +18,9 @@ export const config = {
 async function parseWithAffinda(fileBuffer, fileName, apiKey) {
   try {
     
+    // Get workspace if configured
+    const workspace = process.env.AFFINDA_WORKSPACE || process.env.NEXT_PUBLIC_AFFINDA_WORKSPACE;
+    
     const form = new FormData();
     form.append('file', fileBuffer, {
       filename: fileName,
@@ -25,16 +28,16 @@ async function parseWithAffinda(fileBuffer, fileName, apiKey) {
     });
     form.append('wait', 'true');
     
-    // Add workspace if configured
-    const workspace = process.env.AFFINDA_WORKSPACE || process.env.NEXT_PUBLIC_AFFINDA_WORKSPACE;
     if (workspace) {
-      form.append('workspace', workspace);
       console.log('📁 Using Affinda workspace:', workspace);
     }
     
     console.log('📤 Sending to Affinda API...');
     
-    const response = await axios.post('https://api.affinda.com/v3/resumes', form, {
+    // Always use the resumes endpoint
+    const endpoint = 'https://api.affinda.com/v3/resumes';
+    
+    const response = await axios.post(endpoint, form, {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         ...form.getHeaders()
@@ -323,7 +326,7 @@ IMPORTANT:
 Extract the data now:`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: {

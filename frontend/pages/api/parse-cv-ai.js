@@ -38,7 +38,12 @@ export default async function handler(req, res) {
     // Call Gemini AI with file data
     const prompt = `You are an expert CV/Resume parser. Analyze this CV document and extract ALL information in valid JSON format.
 
-CRITICAL: Return ONLY valid JSON, no markdown code blocks, no explanations.
+CRITICAL INSTRUCTIONS:
+1. Return ONLY valid JSON, no markdown code blocks, no explanations
+2. Look carefully at their OBJECTIVE, CAREER SUMMARY, or PROFESSIONAL SUMMARY to identify what jobs they WANT
+3. Look at their CURRENT/RECENT job titles to identify their experience level
+4. Extract their ACTUAL skills from the CV, not generic ones
+5. Be SPECIFIC with targetRoles - use exact job titles they mention or that match their experience
 
 Extract and return this exact JSON structure:
 {
@@ -46,21 +51,27 @@ Extract and return this exact JSON structure:
   "email": "email@example.com",
   "phone": "+27 XXX XXX XXXX",
   "summary": "2-3 sentence professional summary of the candidate",
-  "skills": ["skill1", "skill2", "skill3", ...],
+  "skills": ["List ACTUAL skills from CV - programming languages, tools, certifications, technical skills, soft skills"],
   "experience": {
-    "years": <total years of experience as number>,
+    "years": <total years of professional experience as number - calculate from work history dates>,
     "roles": [
-      {"title": "Job Title", "company": "Company Name", "duration": "Jan 2020 - Dec 2022", "description": "What they did"}
+      {"title": "Their ACTUAL Job Title", "company": "Company Name", "duration": "Jan 2020 - Dec 2022", "description": "What they did"}
     ]
   },
   "education": ["Degree/Qualification at Institution", "Another qualification"],
-  "targetRoles": ["Specific job title they're seeking", "Another target role"],
-  "desiredRoles": ["Role1", "Role2", "Role3"],
+  "targetRoles": ["SPECIFIC job titles they're seeking based on their objective/summary - e.g. 'Data Analyst', 'Software Developer', 'Marketing Manager'"],
+  "desiredRoles": ["Alternative job titles that match their skills and experience"],
   "text": "Full extracted text from CV (first 3000 characters)",
-  "totalExperience": <years as number>
+  "totalExperience": <years as number - same as experience.years>,
+  "currentRole": "Their most recent job title",
+  "seniorityLevel": "entry/junior/mid/senior/lead - based on their experience years and job titles"
 }
 
-Be specific about job titles they want (look in objective/summary). Extract ALL skills mentioned. Include complete work history.`;
+IMPORTANT: 
+- If they have 3+ years experience, they are NOT entry-level
+- Look at their OBJECTIVE/SUMMARY for target roles like "Seeking position as X" or "Aspiring Y"
+- Extract REAL skills from the CV, not assumptions
+- Be specific with job titles, not generic like "Office Worker"`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -126,23 +137,33 @@ Be specific about job titles they want (look in objective/summary). Extract ALL 
     cvData.fileName = fileName;
     cvData.uploadDate = new Date().toISOString();
     
-    console.log('✅ Parsed CV data:', {
+    console.log('✅ Gemini extracted CV data:', {
       name: cvData.name,
-      skills: cvData.skills?.length,
-      experience: cvData.experience?.years,
-      targetRoles: cvData.targetRoles?.length
+      currentRole: cvData.currentRole,
+      seniorityLevel: cvData.seniorityLevel,
+      totalExperience: cvData.totalExperience,
+      skills: cvData.skills,
+      targetRoles: cvData.targetRoles,
+      desiredRoles: cvData.desiredRoles,
+      summary: cvData.summary?.substring(0, 100)
     });
 
     // Now analyze the CV for suggestions
-    const analysisPrompt = `You are an ATS specialist. Analyze this CV and provide improvement suggestions.
+    const analysisPrompt = `You are an ATS specialist and career advisor. Analyze this CV and provide insights.
 
 CV Data: ${JSON.stringify(cvData).substring(0, 2000)}
+
+IMPORTANT: Look at the candidate's:
+1. Current/recent job titles to determine experience level
+2. Objective/summary to identify what jobs they WANT
+3. Skills to determine what roles they're qualified for
+4. Total years of experience
 
 Return valid JSON with:
 {
   "score": <0-100>,
   "atsScore": <0-100>,
-  "description": "Who this candidate is and their background",
+  "description": "Who this candidate is and their background in 2 sentences",
   "careerSummary": "Professional summary",
   "suggestions": [
     {"title": "Suggestion", "description": "Details", "priority": "high/medium/low", "category": "ATS/Content/Format"}
@@ -152,9 +173,12 @@ Return valid JSON with:
   ],
   "strengths": ["strength1", "strength2"],
   "weaknesses": ["weakness1", "weakness2"],
-  "targetRoles": ["role1", "role2"],
-  "experienceLevel": "entry/mid/senior"
-}`;
+  "targetRoles": ["SPECIFIC job titles this candidate should apply for - based on their skills, experience, and stated goals - e.g. 'Junior Software Developer', 'Data Analyst', 'Marketing Coordinator'"],
+  "experienceLevel": "entry/junior/mid/senior/expert",
+  "recommendedSearchTerms": ["Search term 1", "Search term 2", "Search term 3"]
+}
+
+Be SPECIFIC with targetRoles - use actual job titles they're qualified for, not generic terms.`;
 
     const analysisResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,

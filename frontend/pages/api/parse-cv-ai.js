@@ -13,71 +13,94 @@ export const config = {
 
 // Parse CV with Affinda API
 async function parseWithAffinda(fileBuffer, fileName, apiKey) {
-  const FormData = require('form-data');
-  const form = new FormData();
+  try {
+    // Create form data for multipart upload
+    const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
+    let body = '';
+    
+    // Add file
+    body += `--${boundary}\r\n`;
+    body += `Content-Disposition: form-data; name="file"; filename="${fileName}"\r\n`;
+    body += `Content-Type: application/pdf\r\n\r\n`;
+    body += fileBuffer.toString('binary');
+    body += '\r\n';
+    
+    // Add wait parameter
+    body += `--${boundary}\r\n`;
+    body += `Content-Disposition: form-data; name="wait"\r\n\r\n`;
+    body += 'true\r\n';
+    
+    // Add workspace if configured
+    const workspace = process.env.AFFINDA_WORKSPACE || process.env.NEXT_PUBLIC_AFFINDA_WORKSPACE;
+    if (workspace) {
+      body += `--${boundary}\r\n`;
+      body += `Content-Disposition: form-data; name="workspace"\r\n\r\n`;
+      body += `${workspace}\r\n`;
+      console.log('📁 Using Affinda workspace:', workspace);
+    }
+    
+    body += `--${boundary}--\r\n`;
+    
+    console.log('📤 Sending to Affinda API...');
+    
+    const response = await fetch('https://api.affinda.com/v3/resumes', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': `multipart/form-data; boundary=${boundary}`
+      },
+      body: Buffer.from(body, 'binary')
+    });
+    
+    const responseText = await response.text();
+    console.log('📥 Affinda response status:', response.status);
+    
+    if (!response.ok) {
+      console.error('❌ Affinda API error:', responseText.substring(0, 500));
+      throw new Error(`Affinda API error: ${response.status} - ${responseText.substring(0, 200)}`);
+    }
+    
+    const result = JSON.parse(responseText);
+    const data = result.data || result;
+    
+    console.log('✅ Affinda parsed CV:', {
+      name: data.name?.raw,
+      skillsCount: data.skills?.length,
+      experienceCount: data.workExperience?.length
+    });
   
-  form.append('file', fileBuffer, { filename: fileName });
-  form.append('wait', 'true');
-  form.append('compact', 'false');
-  
-  // Add workspace if configured
-  const workspace = process.env.AFFINDA_WORKSPACE || process.env.NEXT_PUBLIC_AFFINDA_WORKSPACE;
-  if (workspace) {
-    form.append('workspace', workspace);
-    console.log('📁 Using Affinda workspace:', workspace);
+    // Transform to our format
+    return {
+      name: data.name?.raw || '',
+      email: data.emails?.[0] || '',
+      phone: data.phoneNumbers?.[0] || '',
+      summary: data.summary || data.objective || '',
+      skills: (data.skills || []).map(s => s.name || s).filter(Boolean),
+      experience: {
+        years: calculateExperience(data.workExperience),
+        roles: (data.workExperience || []).map(job => ({
+          title: job.jobTitle || '',
+          company: job.organization || '',
+          duration: job.dates ? `${job.dates.startDate || ''} - ${job.dates.endDate || 'Present'}` : '',
+          description: job.jobDescription || ''
+        }))
+      },
+      education: (data.education || []).map(edu => 
+        `${edu.accreditation?.education || ''} at ${edu.organization || ''}`.trim()
+      ).filter(Boolean),
+      targetRoles: extractTargetRoles(data),
+      desiredRoles: extractDesiredRoles(data),
+      text: data.rawText || '',
+      totalExperience: calculateExperience(data.workExperience),
+      currentRole: data.workExperience?.[0]?.jobTitle || '',
+      seniorityLevel: determineSeniority(calculateExperience(data.workExperience)),
+      fileName: fileName,
+      uploadDate: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('❌ Affinda parsing exception:', error.message);
+    throw error;
   }
-  
-  const response = await fetch('https://api.affinda.com/v3/resumes', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      ...form.getHeaders()
-    },
-    body: form
-  });
-  
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Affinda API error: ${response.status} - ${error}`);
-  }
-  
-  const result = await response.json();
-  const data = result.data || result;
-  
-  console.log('✅ Affinda parsed CV:', {
-    name: data.name?.raw,
-    skillsCount: data.skills?.length,
-    experienceCount: data.workExperience?.length
-  });
-  
-  // Transform to our format
-  return {
-    name: data.name?.raw || '',
-    email: data.emails?.[0] || '',
-    phone: data.phoneNumbers?.[0] || '',
-    summary: data.summary || data.objective || '',
-    skills: (data.skills || []).map(s => s.name || s).filter(Boolean),
-    experience: {
-      years: calculateExperience(data.workExperience),
-      roles: (data.workExperience || []).map(job => ({
-        title: job.jobTitle || '',
-        company: job.organization || '',
-        duration: job.dates ? `${job.dates.startDate || ''} - ${job.dates.endDate || 'Present'}` : '',
-        description: job.jobDescription || ''
-      }))
-    },
-    education: (data.education || []).map(edu => 
-      `${edu.accreditation?.education || ''} at ${edu.organization || ''}`.trim()
-    ).filter(Boolean),
-    targetRoles: extractTargetRoles(data),
-    desiredRoles: extractDesiredRoles(data),
-    text: data.rawText || '',
-    totalExperience: calculateExperience(data.workExperience),
-    currentRole: data.workExperience?.[0]?.jobTitle || '',
-    seniorityLevel: determineSeniority(calculateExperience(data.workExperience)),
-    fileName: fileName,
-    uploadDate: new Date().toISOString()
-  };
 }
 
 function calculateExperience(workExperience) {

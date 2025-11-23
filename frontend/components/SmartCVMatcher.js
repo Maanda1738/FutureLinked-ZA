@@ -136,54 +136,47 @@ export default function SmartCVMatcher({ onJobsFound }) {
     setUploading(true);
 
     try {
-      // Step 1: Extract text from CV file (browser-side parsing)
-      console.log('📄 Extracting text from:', file.name);
+      // Step 1: Convert file to base64 and send to AI for parsing
+      console.log('📄 Reading file:', file.name);
       
-      let extractedText = '';
-      
-      // Simple text extraction - read file as text
-      const fileText = await file.text();
-      extractedText = fileText;
-      
-      console.log('✅ Extracted text length:', extractedText.length);
-      
-      // Build CV data structure from extracted text
-      const cvData = {
-        fileName: file.name,
-        uploadDate: new Date().toISOString(),
-        text: extractedText,
-        summary: extractedText.substring(0, 500),
-        skills: extractSkills(extractedText),
-        experience: extractExperience(extractedText),
-        education: extractEducation(extractedText),
-        name: extractName(extractedText),
-        email: extractEmail(extractedText),
-        phone: extractPhone(extractedText)
-      };
-      
-      console.log('📊 Parsed CV data:', { 
-        skills: cvData.skills?.length, 
-        experience: cvData.experience 
+      const reader = new FileReader();
+      const fileData = await new Promise((resolve, reject) => {
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
       });
       
-      // Store CV data for editor
-      setCVDataForEdit(cvData);
+      console.log('✅ File read successfully');
       
       setUploading(false);
       setAnalyzing(true);
 
-      // Step 2: Analyze CV and get suggestions
-      const analysisResponse = await fetch('/api/analyze-cv', {
+      // Step 2: Send to backend for AI-powered CV parsing and analysis
+      const parseResponse = await fetch('/api/parse-cv-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvData }),
+        body: JSON.stringify({ 
+          fileData,
+          fileName: file.name,
+          fileType: file.type
+        }),
       });
 
-      if (!analysisResponse.ok) {
-        throw new Error('Failed to analyze CV');
+      if (!parseResponse.ok) {
+        const errorData = await parseResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to parse CV with AI');
       }
 
-      const analysis = await analysisResponse.json();
+      const parseResult = await parseResponse.json();
+      console.log('✅ AI parsed CV:', parseResult);
+      
+      const cvData = parseResult.cvData || parseResult;
+      
+      // Store CV data for editor
+      setCVDataForEdit(cvData);
+      
+      // Get analysis (should already be in parseResult)
+      const analysis = parseResult.analysis || parseResult;
       setAnalysisResult(analysis);
 
       // Step 3: Extract skills and build BROAD job search queries

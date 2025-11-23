@@ -11,57 +11,39 @@ export const config = {
   },
 };
 
-// Parse CV with Affinda API
+// Parse CV with Affinda API using axios
 async function parseWithAffinda(fileBuffer, fileName, apiKey) {
   try {
-    // Create form data for multipart upload
-    const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
-    let body = '';
+    const axios = require('axios');
+    const FormData = require('form-data');
     
-    // Add file
-    body += `--${boundary}\r\n`;
-    body += `Content-Disposition: form-data; name="file"; filename="${fileName}"\r\n`;
-    body += `Content-Type: application/pdf\r\n\r\n`;
-    body += fileBuffer.toString('binary');
-    body += '\r\n';
-    
-    // Add wait parameter
-    body += `--${boundary}\r\n`;
-    body += `Content-Disposition: form-data; name="wait"\r\n\r\n`;
-    body += 'true\r\n';
+    const form = new FormData();
+    form.append('file', fileBuffer, {
+      filename: fileName,
+      contentType: 'application/pdf'
+    });
+    form.append('wait', 'true');
     
     // Add workspace if configured
     const workspace = process.env.AFFINDA_WORKSPACE || process.env.NEXT_PUBLIC_AFFINDA_WORKSPACE;
     if (workspace) {
-      body += `--${boundary}\r\n`;
-      body += `Content-Disposition: form-data; name="workspace"\r\n\r\n`;
-      body += `${workspace}\r\n`;
+      form.append('workspace', workspace);
       console.log('📁 Using Affinda workspace:', workspace);
     }
     
-    body += `--${boundary}--\r\n`;
-    
     console.log('📤 Sending to Affinda API...');
     
-    const response = await fetch('https://api.affinda.com/v3/resumes', {
-      method: 'POST',
+    const response = await axios.post('https://api.affinda.com/v3/resumes', form, {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': `multipart/form-data; boundary=${boundary}`
+        ...form.getHeaders()
       },
-      body: Buffer.from(body, 'binary')
+      timeout: 30000
     });
     
-    const responseText = await response.text();
     console.log('📥 Affinda response status:', response.status);
     
-    if (!response.ok) {
-      console.error('❌ Affinda API error:', responseText.substring(0, 500));
-      throw new Error(`Affinda API error: ${response.status} - ${responseText.substring(0, 200)}`);
-    }
-    
-    const result = JSON.parse(responseText);
-    const data = result.data || result;
+    const data = response.data?.data || response.data;
     
     console.log('✅ Affinda parsed CV:', {
       name: data.name?.raw,

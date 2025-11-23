@@ -34,6 +34,12 @@ export default async function handler(req, res) {
     // Extract base64 data
     const base64Data = fileData.split(',')[1];
     const mimeType = fileData.split(':')[1].split(';')[0];
+    
+    console.log('📄 File info:', { fileName, mimeType, dataSize: base64Data?.length });
+    
+    if (!base64Data || base64Data.length < 100) {
+      throw new Error('Invalid file data - file may be empty or corrupted');
+    }
 
     // Call Gemini AI with file data
     const prompt = `You are an expert CV/Resume parser with deep understanding of South African job market and CV formats.
@@ -134,15 +140,23 @@ NOW PARSE THE CV DOCUMENT AND RETURN ONLY THE JSON:`;
 
     const data = await response.json();
     
+    console.log('📥 Gemini API response structure:', {
+      hasCandidates: !!data.candidates,
+      candidatesLength: data.candidates?.length,
+      hasFinishReason: data.candidates?.[0]?.finishReason,
+      safetyRatings: data.candidates?.[0]?.safetyRatings?.map(r => r.category)
+    });
+    
     let textResponse;
     if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
       textResponse = data.candidates[0].content.parts[0].text;
     } else {
-      throw new Error('Invalid Gemini API response structure');
+      console.error('❌ Unexpected Gemini response:', JSON.stringify(data, null, 2).substring(0, 1000));
+      throw new Error('Gemini did not return text - file may be unreadable or blocked by safety filters');
     }
 
     console.log('📄 Gemini raw response length:', textResponse.length);
-    console.log('📄 Gemini response preview:', textResponse.substring(0, 300));
+    console.log('📄 Gemini response preview:', textResponse.substring(0, 500));
 
     // Clean and parse JSON
     let jsonText = textResponse.trim();
@@ -176,11 +190,28 @@ NOW PARSE THE CV DOCUMENT AND RETURN ONLY THE JSON:`;
       currentRole: cvData.currentRole,
       seniorityLevel: cvData.seniorityLevel,
       totalExperience: cvData.totalExperience,
+      skillsCount: cvData.skills?.length,
       skills: cvData.skills,
+      targetRolesCount: cvData.targetRoles?.length,
       targetRoles: cvData.targetRoles,
       desiredRoles: cvData.desiredRoles,
-      summary: cvData.summary?.substring(0, 100)
+      summary: cvData.summary?.substring(0, 100),
+      hasText: !!cvData.text,
+      textLength: cvData.text?.length
     });
+    
+    // Validate extraction
+    if (!cvData.name || cvData.name.includes('Extract') || cvData.name.includes('Full name')) {
+      console.error('❌ PARSING FAILED: Gemini did not extract name properly');
+      console.error('   This usually means the PDF is unreadable or the format is not supported');
+    }
+    if (!cvData.skills || cvData.skills.length === 0) {
+      console.error('❌ PARSING FAILED: No skills extracted');
+    }
+    if (!cvData.targetRoles || cvData.targetRoles.length === 0 || cvData.targetRoles[0].includes('SPECIFIC')) {
+      console.error('❌ PARSING FAILED: No target roles extracted');
+      console.error('   Check if CV has an OBJECTIVE or CAREER GOAL section');
+    }
 
     // Now analyze the CV for suggestions
     const analysisPrompt = `You are an expert ATS specialist and career advisor analyzing a CV.

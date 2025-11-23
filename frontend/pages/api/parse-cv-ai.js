@@ -20,6 +20,13 @@ async function parseWithAffinda(fileBuffer, fileName, apiKey) {
   form.append('wait', 'true');
   form.append('compact', 'false');
   
+  // Add workspace if configured
+  const workspace = process.env.AFFINDA_WORKSPACE || process.env.NEXT_PUBLIC_AFFINDA_WORKSPACE;
+  if (workspace) {
+    form.append('workspace', workspace);
+    console.log('📁 Using Affinda workspace:', workspace);
+  }
+  
   const response = await fetch('https://api.affinda.com/v3/resumes', {
     method: 'POST',
     headers: {

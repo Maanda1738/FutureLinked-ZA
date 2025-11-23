@@ -211,12 +211,14 @@ export default async function handler(req, res) {
       gemini: !!GEMINI_API_KEY
     });
     
-    // Extract base64 data
-    const base64Data = fileData.split(',')[1];
-    const mimeType = fileData.split(':')[1].split(';')[0];
-    const fileBuffer = Buffer.from(base64Data, 'base64');
+    // Extract base64 data from the data URL
+    const dataUrlParts = fileData.split(',');
+    const base64String = dataUrlParts[1];
+    const mimeTypePart = dataUrlParts[0];
+    const fileMimeType = mimeTypePart.split(':')[1].split(';')[0];
+    const fileBuffer = Buffer.from(base64String, 'base64');
     
-    console.log('📄 File info:', { fileName, mimeType, size: fileBuffer.length });
+    console.log('📄 File info:', { fileName, mimeType: fileMimeType, size: fileBuffer.length });
     
     if (fileBuffer.length < 100) {
       throw new Error('Invalid file data - file may be empty or corrupted');
@@ -248,14 +250,10 @@ export default async function handler(req, res) {
     }
 
     console.log('🤖 Using Gemini AI to parse CV:', fileName);
-
-    // Extract base64 data
-    const base64Data = fileData.split(',')[1];
-    const mimeType = fileData.split(':')[1].split(';')[0];
     
-    console.log('📄 File info:', { fileName, mimeType, dataSize: base64Data?.length });
+    console.log('📄 Using Gemini with file size:', base64String?.length);
     
-    if (!base64Data || base64Data.length < 100) {
+    if (!base64String || base64String.length < 100) {
       throw new Error('Invalid file data - file may be empty or corrupted');
     }
 
@@ -311,8 +309,8 @@ Extract the data now:`;
               parts: [
                 {
                   inline_data: {
-                    mime_type: mimeType,
-                    data: base64Data
+                    mime_type: fileMimeType,
+                    data: base64String
                   }
                 },
                 {

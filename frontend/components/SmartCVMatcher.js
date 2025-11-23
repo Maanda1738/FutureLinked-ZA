@@ -178,10 +178,24 @@ export default function SmartCVMatcher({ onJobsFound }) {
       // Get analysis (should already be in parseResult)
       const analysis = parseResult.analysis || parseResult;
       setAnalysisResult(analysis);
+      
+      // DEBUG: Show what AI extracted
+      console.log('🔍 CV DATA:', {
+        name: cvData.name,
+        skills: cvData.skills,
+        targetRoles: cvData.targetRoles || cvData.desiredRoles,
+        experience: cvData.totalExperience || cvData.experience?.years,
+        text: cvData.text?.substring(0, 200)
+      });
+      console.log('🔍 ANALYSIS:', {
+        targetRoles: analysis.targetRoles,
+        experienceLevel: analysis.experienceLevel,
+        score: analysis.score
+      });
 
       // Step 3: Extract skills and build BROAD job search queries
       const topSkills = cvData.skills?.slice(0, 5) || [];
-      const rawDesiredRoles = cvData.desiredRoles || analysis.targetRoles || [];
+      const rawDesiredRoles = cvData.desiredRoles || cvData.targetRoles || analysis.targetRoles || [];
       
       // Detect seniority level from CV
       const cvText = (cvData.text || cvData.summary || '').toLowerCase();
@@ -190,21 +204,33 @@ export default function SmartCVMatcher({ onJobsFound }) {
                        cvText.includes('seeking opportunities');
       const experienceYears = cvData.totalExperience || cvData.experience?.years || 0;
       
+      console.log('🎯 Building search queries from:', {
+        topSkills: topSkills,
+        analysisTargetRoles: analysis.targetRoles,
+        cvTargetRoles: cvData.targetRoles,
+        cvDesiredRoles: cvData.desiredRoles,
+        rawDesiredRoles: rawDesiredRoles,
+        experienceYears: experienceYears,
+        isJunior: isJunior
+      });
+      
       // Build DIVERSE search queries to get variety of jobs
       let searchQueries = [];
       
       // Priority 1: Use AI-detected target roles from analysis (most accurate)
       if (analysis.targetRoles && analysis.targetRoles.length > 0) {
         searchQueries.push(...analysis.targetRoles.slice(0, 3));
-        console.log('✅ Using AI-detected roles:', analysis.targetRoles);
+        console.log('✅ Using AI-detected analysis roles:', analysis.targetRoles);
       }
-      // Priority 2: Use CV declared desired roles
+      // Priority 2: Use CV declared desired/target roles
       else if (rawDesiredRoles && rawDesiredRoles.length > 0) {
         searchQueries.push(...rawDesiredRoles.slice(0, 3));
+        console.log('✅ Using CV declared roles:', rawDesiredRoles);
       }
       // Priority 3: Use top skills as search terms for broader results
       else {
         searchQueries.push(...topSkills.slice(0, 3));
+        console.log('⚠️ Falling back to skills:', topSkills);
       }
       
       // Add skill-based searches for variety (top 2 skills)
@@ -237,21 +263,25 @@ export default function SmartCVMatcher({ onJobsFound }) {
       for (const query of searchQueries) {
         try {
           const searchUrl = `${apiBase}/api/search?q=${encodeURIComponent(query)}&limit=10&source=adzuna`;
-          console.log('🔍 Searching jobs:', searchUrl);
+          console.log('🔍 Searching jobs for query:', query, '→', searchUrl);
           const searchResponse = await fetch(searchUrl);
           
           if (searchResponse.ok) {
             const searchData = await searchResponse.json();
-            if (searchData.results) {
+            console.log(`✅ Query "${query}" returned ${searchData.results?.length || 0} jobs from ${searchData.provider || 'unknown'}`);
+            if (searchData.results && searchData.results.length > 0) {
+              console.log('   Sample jobs:', searchData.results.slice(0, 3).map(j => j.title));
               allJobs.push(...searchData.results);
             }
           } else {
-            console.warn('Search failed:', searchResponse.status);
+            console.error(`❌ Search failed for "${query}":`, searchResponse.status, await searchResponse.text());
           }
         } catch (err) {
-          console.warn(`Search error for '${query}':`, err.message);
+          console.error(`❌ Search error for "${query}":`, err.message);
         }
       }
+      
+      console.log(`📊 Total jobs fetched: ${allJobs.length}`);
 
       // Step 5: Remove duplicates and score ALL jobs (no filtering, just scoring)
       const uniqueJobs = [];

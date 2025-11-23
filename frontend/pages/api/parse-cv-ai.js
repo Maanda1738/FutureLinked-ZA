@@ -204,12 +204,15 @@ Return ONLY valid JSON:
 }
 
 export default async function handler(req, res) {
+  console.log('🔵 parse-cv-ai endpoint called');
+  
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
     const { fileData, fileName, fileType } = req.body;
+    console.log('📥 Request received:', { fileName, fileType, hasData: !!fileData });
 
     if (!fileData) {
       return res.status(400).json({ error: 'File data is required' });
@@ -242,9 +245,12 @@ export default async function handler(req, res) {
       try {
         console.log('🔧 Using Affinda API for CV parsing...');
         const cvData = await parseWithAffinda(fileBuffer, fileName, AFFINDA_API_KEY);
+        console.log('✅ Affinda parsing successful');
         
         // Get AI analysis
+        console.log('🤖 Running Gemini analysis...');
         const analysis = await analyzeCV(cvData, GEMINI_API_KEY);
+        console.log('✅ Analysis complete');
         
         return res.status(200).json({
           cvData,
@@ -253,8 +259,15 @@ export default async function handler(req, res) {
           parser: 'affinda'
         });
       } catch (affindaError) {
-        console.warn('⚠️ Affinda parsing failed, falling back to Gemini:', affindaError.message);
+        console.error('❌ Affinda error details:', {
+          message: affindaError.message,
+          response: affindaError.response?.data,
+          status: affindaError.response?.status
+        });
+        console.warn('⚠️ Affinda parsing failed, falling back to Gemini');
       }
+    } else {
+      console.log('⚠️ No Affinda API key configured, skipping Affinda');
     }
     
     // Fallback to Gemini
@@ -528,9 +541,11 @@ IMPORTANT:
 
   } catch (error) {
     console.error('❌ CV parsing error:', error);
+    console.error('❌ Error stack:', error.stack);
     return res.status(500).json({ 
       error: 'Failed to parse CV',
-      message: error.message 
+      message: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 }

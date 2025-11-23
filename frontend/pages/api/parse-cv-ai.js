@@ -1,5 +1,5 @@
 /**
- * API Endpoint: Parse CV using Gemini AI
+ * API Endpoint: Parse CV using AI (Affinda or Gemini)
  * POST /api/parse-cv-ai
  */
 
@@ -10,6 +10,185 @@ export const config = {
     },
   },
 };
+
+// Parse CV with Affinda API
+async function parseWithAffinda(fileBuffer, fileName, apiKey) {
+  const FormData = require('form-data');
+  const form = new FormData();
+  
+  form.append('file', fileBuffer, { filename: fileName });
+  form.append('wait', 'true');
+  form.append('compact', 'false');
+  
+  const response = await fetch('https://api.affinda.com/v3/resumes', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      ...form.getHeaders()
+    },
+    body: form
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Affinda API error: ${response.status} - ${error}`);
+  }
+  
+  const result = await response.json();
+  const data = result.data || result;
+  
+  console.log('✅ Affinda parsed CV:', {
+    name: data.name?.raw,
+    skillsCount: data.skills?.length,
+    experienceCount: data.workExperience?.length
+  });
+  
+  // Transform to our format
+  return {
+    name: data.name?.raw || '',
+    email: data.emails?.[0] || '',
+    phone: data.phoneNumbers?.[0] || '',
+    summary: data.summary || data.objective || '',
+    skills: (data.skills || []).map(s => s.name || s).filter(Boolean),
+    experience: {
+      years: calculateExperience(data.workExperience),
+      roles: (data.workExperience || []).map(job => ({
+        title: job.jobTitle || '',
+        company: job.organization || '',
+        duration: job.dates ? `${job.dates.startDate || ''} - ${job.dates.endDate || 'Present'}` : '',
+        description: job.jobDescription || ''
+      }))
+    },
+    education: (data.education || []).map(edu => 
+      `${edu.accreditation?.education || ''} at ${edu.organization || ''}`.trim()
+    ).filter(Boolean),
+    targetRoles: extractTargetRoles(data),
+    desiredRoles: extractDesiredRoles(data),
+    text: data.rawText || '',
+    totalExperience: calculateExperience(data.workExperience),
+    currentRole: data.workExperience?.[0]?.jobTitle || '',
+    seniorityLevel: determineSeniority(calculateExperience(data.workExperience)),
+    fileName: fileName,
+    uploadDate: new Date().toISOString()
+  };
+}
+
+function calculateExperience(workExperience) {
+  if (!workExperience || !Array.isArray(workExperience)) return 0;
+  
+  let totalMonths = 0;
+  workExperience.forEach(job => {
+    if (job.dates?.startDate) {
+      const start = new Date(job.dates.startDate);
+      const end = job.dates?.endDate ? new Date(job.dates.endDate) : new Date();
+      const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+      totalMonths += Math.max(0, months);
+    }
+  });
+  
+  return Math.round(totalMonths / 12);
+}
+
+function extractTargetRoles(data) {
+  const roles = [];
+  
+  // From objective
+  if (data.objective) {
+    const obj = data.objective.toLowerCase();
+    if (obj.includes('seeking') || obj.includes('looking for') || obj.includes('aspiring')) {
+      roles.push(data.objective.substring(0, 100));
+    }
+  }
+  
+  // From recent job titles
+  if (data.workExperience && data.workExperience.length > 0) {
+    const recentJob = data.workExperience[0].jobTitle;
+    if (recentJob) roles.push(recentJob);
+  }
+  
+  return roles.filter(Boolean).slice(0, 5);
+}
+
+function extractDesiredRoles(data) {
+  const roles = [];
+  
+  if (data.workExperience) {
+    data.workExperience.slice(0, 3).forEach(job => {
+      if (job.jobTitle) roles.push(job.jobTitle);
+    });
+  }
+  
+  return [...new Set(roles)];
+}
+
+function determineSeniority(years) {
+  if (years === 0) return 'entry';
+  if (years < 2) return 'junior';
+  if (years < 5) return 'mid';
+  if (years < 10) return 'senior';
+  return 'expert';
+}
+
+// Analyze CV with Gemini
+async function analyzeCV(cvData, geminiKey) {
+  if (!geminiKey) {
+    return {
+      score: 75,
+      atsScore: 70,
+      description: cvData.summary || 'Professional candidate',
+      targetRoles: cvData.targetRoles || [],
+      recommendedSearchTerms: cvData.targetRoles || [],
+      experienceLevel: cvData.seniorityLevel
+    };
+  }
+  
+  try {
+    const analysisPrompt = `Analyze this CV and provide job search recommendations.
+
+CV: ${JSON.stringify(cvData, null, 2).substring(0, 2000)}
+
+Return ONLY valid JSON:
+{
+  "score": 75,
+  "atsScore": 70,
+  "description": "Brief description",
+  "targetRoles": ["Specific job titles to search for"],
+  "recommendedSearchTerms": ["Best search terms for job boards"],
+  "experienceLevel": "entry/junior/mid/senior"
+}`;
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: analysisPrompt }] }],
+          generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+        })
+      }
+    );
+    
+    const data = await response.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const jsonStart = cleanText.indexOf('{');
+    const jsonEnd = cleanText.lastIndexOf('}');
+    const jsonText = jsonStart !== -1 ? cleanText.substring(jsonStart, jsonEnd + 1) : cleanText;
+    
+    return JSON.parse(jsonText);
+  } catch (e) {
+    console.warn('Analysis failed, using defaults:', e.message);
+    return {
+      score: 75,
+      atsScore: 70,
+      description: cvData.summary || 'Professional candidate',
+      targetRoles: cvData.targetRoles || [],
+      recommendedSearchTerms: cvData.targetRoles || [],
+      experienceLevel: cvData.seniorityLevel
+    };
+  }
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -23,10 +202,49 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'File data is required' });
     }
 
+    // Try Affinda first (more reliable for CVs)
+    const AFFINDA_API_KEY = process.env.AFFINDA_API_KEY || process.env.NEXT_PUBLIC_AFFINDA_API_KEY;
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
     
+    console.log('🤖 Parsing CV:', fileName, '| Methods available:', {
+      affinda: !!AFFINDA_API_KEY,
+      gemini: !!GEMINI_API_KEY
+    });
+    
+    // Extract base64 data
+    const base64Data = fileData.split(',')[1];
+    const mimeType = fileData.split(':')[1].split(';')[0];
+    const fileBuffer = Buffer.from(base64Data, 'base64');
+    
+    console.log('📄 File info:', { fileName, mimeType, size: fileBuffer.length });
+    
+    if (fileBuffer.length < 100) {
+      throw new Error('Invalid file data - file may be empty or corrupted');
+    }
+
+    // Try Affinda first (professional CV parser)
+    if (AFFINDA_API_KEY) {
+      try {
+        console.log('🔧 Using Affinda API for CV parsing...');
+        const cvData = await parseWithAffinda(fileBuffer, fileName, AFFINDA_API_KEY);
+        
+        // Get AI analysis
+        const analysis = await analyzeCV(cvData, GEMINI_API_KEY);
+        
+        return res.status(200).json({
+          cvData,
+          analysis,
+          aiPowered: true,
+          parser: 'affinda'
+        });
+      } catch (affindaError) {
+        console.warn('⚠️ Affinda parsing failed, falling back to Gemini:', affindaError.message);
+      }
+    }
+    
+    // Fallback to Gemini
     if (!GEMINI_API_KEY) {
-      return res.status(500).json({ error: 'Gemini API key not configured' });
+      return res.status(500).json({ error: 'No CV parsing service configured' });
     }
 
     console.log('🤖 Using Gemini AI to parse CV:', fileName);
@@ -42,67 +260,46 @@ export default async function handler(req, res) {
     }
 
     // Call Gemini AI with file data
-    const prompt = `You are an expert CV/Resume parser with deep understanding of South African job market and CV formats.
+    const prompt = `Read this CV/Resume document and extract the information into JSON format.
 
-TASK: Extract structured data from this CV/Resume document.
+WHAT TO EXTRACT:
+1. NAME - person's full name from top of CV
+2. CONTACT - email and phone number
+3. SKILLS - every skill mentioned anywhere in the CV (technical skills, soft skills, software, tools, languages)
+4. OBJECTIVE/GOAL - what job(s) they want (look for "seeking", "aspiring to", "looking for", "career objective")
+5. WORK HISTORY - job titles, companies, dates
+6. EDUCATION - degrees, diplomas, certifications
 
-CRITICAL PARSING RULES:
-1. READ THE ENTIRE DOCUMENT carefully - don't miss any sections
-2. OBJECTIVE/CAREER GOAL section is the MOST important - this tells you what jobs they want
-3. SKILLS section - extract EVERY skill mentioned (technical, software, soft skills, languages, certifications)
-4. WORK EXPERIENCE - note job titles, companies, dates, responsibilities
-5. EDUCATION - all qualifications and institutions
-6. Look for keywords like "seeking", "looking for", "aspiring", "interested in" to identify target roles
-7. If CV mentions specific software (Excel, Python, SQL, Photoshop, etc.) - those are skills
-8. If CV mentions "Junior X" or "Entry-level X" or "Graduate X" - they want those specific roles
-
-RESPONSE FORMAT: Return ONLY valid JSON (no markdown, no code blocks, no explanations):
-
+Return ONLY this JSON (no explanations, no markdown):
 {
-  "name": "Extract full name from CV",
-  "email": "Extract email address",
-  "phone": "Extract phone number with country code",
-  "summary": "Write 2-3 sentence summary of who they are and what they want",
-  "skills": [
-    "List EVERY skill mentioned in CV",
-    "Include technical skills (software, tools, languages)",
-    "Include soft skills (communication, leadership, etc.)",
-    "Include certifications and qualifications",
-    "Minimum 5 skills, ideally 10-20 skills"
-  ],
+  "name": "Person's actual name",
+  "email": "their email",
+  "phone": "their phone",
+  "summary": "Brief description of this person",
+  "skills": ["skill1", "skill2", "skill3", "etc"],
   "experience": {
     "years": 0,
-    "roles": [
-      {"title": "Most recent job title", "company": "Company name", "duration": "Start - End dates", "description": "Brief description"}
-    ]
+    "roles": [{"title": "Job Title", "company": "Company", "duration": "dates"}]
   },
-  "education": ["Degree/Diploma/Matric at Institution name"],
-  "targetRoles": [
-    "EXACT job titles they're seeking (from objective/summary)",
-    "Look for phrases like 'seeking X position', 'aspiring X', 'looking for X role'",
-    "If they say 'Junior Data Analyst' - write exactly that",
-    "If they say 'Entry Level Developer' - write exactly that",
-    "Include 2-5 specific job titles"
-  ],
-  "desiredRoles": [
-    "Similar/related job titles that match their skills",
-    "Alternative titles in same field"
-  ],
-  "text": "Copy first 3000 characters of CV text exactly as written",
+  "education": ["qualification 1", "qualification 2"],
+  "targetRoles": ["Specific job title they want", "Alternative job title"],
+  "desiredRoles": ["Related job title 1", "Related job title 2"],
+  "text": "Full text from CV",
   "totalExperience": 0,
-  "currentRole": "Their most recent/current job title",
-  "seniorityLevel": "entry/junior/mid/senior"
+  "currentRole": "Most recent job title",
+  "seniorityLevel": "entry or junior or mid or senior"
 }
 
-EXAMPLES OF GOOD EXTRACTION:
-- If CV says "Seeking Data Analyst position" → targetRoles: ["Data Analyst", "Junior Data Analyst", "Business Analyst"]
-- If CV mentions "Excel, PowerBI, SQL" → skills: ["Microsoft Excel", "Power BI", "SQL", ...]
-- If CV says "Entry-level Marketing" → targetRoles: ["Entry Level Marketing", "Marketing Assistant", "Junior Marketing Coordinator"]
+IMPORTANT: 
+- Extract EXACT job titles from their objective/career goal section
+- List ALL skills mentioned (software, technical, soft skills)
+- If they say "Junior Data Analyst" write "Junior Data Analyst" not "Data Analyst"
+- If no objective section, infer target roles from their experience and skills
 
-NOW PARSE THE CV DOCUMENT AND RETURN ONLY THE JSON:`;
+Extract the data now:`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: {
@@ -113,21 +310,41 @@ NOW PARSE THE CV DOCUMENT AND RETURN ONLY THE JSON:`;
             {
               parts: [
                 {
-                  text: prompt
-                },
-                {
                   inline_data: {
                     mime_type: mimeType,
                     data: base64Data
                   }
+                },
+                {
+                  text: prompt
                 }
               ]
             }
           ],
           generationConfig: {
-            temperature: 0.4,
-            maxOutputTokens: 2048,
-          }
+            temperature: 0.1,
+            maxOutputTokens: 4096,
+            topP: 1,
+            topK: 32
+          },
+          safetySettings: [
+            {
+              category: "HARM_CATEGORY_HARASSMENT",
+              threshold: "BLOCK_NONE"
+            },
+            {
+              category: "HARM_CATEGORY_HATE_SPEECH",
+              threshold: "BLOCK_NONE"
+            },
+            {
+              category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+              threshold: "BLOCK_NONE"
+            },
+            {
+              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+              threshold: "BLOCK_NONE"
+            }
+          ]
         })
       }
     );

@@ -5,12 +5,20 @@
 
 [build.environment]
   NODE_VERSION = "20.18.1"
+
+[context.production.environment]
   AFFINDA_API_KEY = "aff_d21f7b34a80a49d4ea62408e9e42e32cfc94fe84"
   AFFINDA_WORKSPACE = "YQAsNzjw"
+  GEMINI_API_KEY = "AIzaSyD_RdR4cjCrP-qBzwUbLHI7i5pYBTOmWN8"
 
 [functions]
   node_bundler = "esbuild"
   included_files = ["backend/node_modules/**"]
+  
+[functions.environment]
+  AFFINDA_API_KEY = "aff_d21f7b34a80a49d4ea62408e9e42e32cfc94fe84"
+  AFFINDA_WORKSPACE = "YQAsNzjw"
+  GEMINI_API_KEY = "AIzaSyD_RdR4cjCrP-qBzwUbLHI7i5pYBTOmWN8"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

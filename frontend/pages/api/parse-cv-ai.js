@@ -3,6 +3,9 @@
  * POST /api/parse-cv-ai
  */
 
+import axios from 'axios';
+import FormData from 'form-data';
+
 export const config = {
   api: {
     bodyParser: {
@@ -14,8 +17,6 @@ export const config = {
 // Parse CV with Affinda API using axios
 async function parseWithAffinda(fileBuffer, fileName, apiKey) {
   try {
-    const axios = require('axios');
-    const FormData = require('form-data');
     
     const form = new FormData();
     form.append('file', fileBuffer, {

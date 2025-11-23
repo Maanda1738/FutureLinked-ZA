@@ -182,16 +182,44 @@ export default function SmartCVMatcher({ onJobsFound }) {
       // DEBUG: Show what AI extracted
       console.log('🔍 CV DATA:', {
         name: cvData.name,
+        currentRole: cvData.currentRole,
+        seniorityLevel: cvData.seniorityLevel,
         skills: cvData.skills,
-        targetRoles: cvData.targetRoles || cvData.desiredRoles,
+        targetRoles: cvData.targetRoles,
+        desiredRoles: cvData.desiredRoles,
         experience: cvData.totalExperience || cvData.experience?.years,
-        text: cvData.text?.substring(0, 200)
+        text: cvData.text?.substring(0, 300)
       });
       console.log('🔍 ANALYSIS:', {
         targetRoles: analysis.targetRoles,
+        recommendedSearchTerms: analysis.recommendedSearchTerms,
         experienceLevel: analysis.experienceLevel,
         score: analysis.score
       });
+      
+      // Show user a popup with extracted data for verification
+      if (typeof window !== 'undefined') {
+        const extractedInfo = `
+AI EXTRACTED FROM YOUR CV:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Name: ${cvData.name}
+Current Role: ${cvData.currentRole || 'Not specified'}
+Experience: ${cvData.totalExperience || 0} years
+Seniority: ${cvData.seniorityLevel || 'Not specified'}
+
+Target Roles: ${(cvData.targetRoles || []).join(', ') || 'None found'}
+Desired Roles: ${(cvData.desiredRoles || []).join(', ') || 'None found'}
+
+Top Skills: ${(cvData.skills || []).slice(0, 10).join(', ')}
+
+AI Analysis Target Roles: ${(analysis.targetRoles || []).join(', ')}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Check console for full details.
+        `.trim();
+        
+        console.log('📋 EXTRACTED INFO:\n' + extractedInfo);
+      }
 
       // Step 3: Extract skills and build BROAD job search queries
       const topSkills = cvData.skills?.slice(0, 5) || [];
@@ -207,8 +235,10 @@ export default function SmartCVMatcher({ onJobsFound }) {
       console.log('🎯 Building search queries from:', {
         topSkills: topSkills,
         analysisTargetRoles: analysis.targetRoles,
+        recommendedSearchTerms: analysis.recommendedSearchTerms,
         cvTargetRoles: cvData.targetRoles,
         cvDesiredRoles: cvData.desiredRoles,
+        cvCurrentRole: cvData.currentRole,
         rawDesiredRoles: rawDesiredRoles,
         experienceYears: experienceYears,
         isJunior: isJunior
@@ -217,20 +247,34 @@ export default function SmartCVMatcher({ onJobsFound }) {
       // Build DIVERSE search queries to get variety of jobs
       let searchQueries = [];
       
-      // Priority 1: Use AI-detected target roles from analysis (most accurate)
+      // Priority 1: Use AI recommended search terms (best for job boards)
+      if (analysis.recommendedSearchTerms && analysis.recommendedSearchTerms.length > 0) {
+        searchQueries.push(...analysis.recommendedSearchTerms.slice(0, 3));
+        console.log('✅ Using AI recommended search terms:', analysis.recommendedSearchTerms);
+      }
+      
+      // Priority 2: Use AI-detected target roles from analysis
       if (analysis.targetRoles && analysis.targetRoles.length > 0) {
-        searchQueries.push(...analysis.targetRoles.slice(0, 3));
-        console.log('✅ Using AI-detected analysis roles:', analysis.targetRoles);
+        searchQueries.push(...analysis.targetRoles.slice(0, 2));
+        console.log('✅ Adding AI analysis target roles:', analysis.targetRoles);
       }
-      // Priority 2: Use CV declared desired/target roles
-      else if (rawDesiredRoles && rawDesiredRoles.length > 0) {
-        searchQueries.push(...rawDesiredRoles.slice(0, 3));
-        console.log('✅ Using CV declared roles:', rawDesiredRoles);
+      
+      // Priority 3: Use CV declared desired/target roles
+      if (rawDesiredRoles && rawDesiredRoles.length > 0) {
+        searchQueries.push(...rawDesiredRoles.slice(0, 2));
+        console.log('✅ Adding CV declared roles:', rawDesiredRoles);
       }
-      // Priority 3: Use top skills as search terms for broader results
-      else {
+      
+      // Priority 4: Use current role as search term (find similar positions)
+      if (cvData.currentRole) {
+        searchQueries.push(cvData.currentRole);
+        console.log('✅ Adding current role:', cvData.currentRole);
+      }
+      
+      // Fallback: Use top skills if no roles found
+      if (searchQueries.length === 0) {
         searchQueries.push(...topSkills.slice(0, 3));
-        console.log('⚠️ Falling back to skills:', topSkills);
+        console.log('⚠️ FALLBACK to skills:', topSkills);
       }
       
       // Add skill-based searches for variety (top 2 skills)

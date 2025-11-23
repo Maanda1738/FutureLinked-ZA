@@ -2,6 +2,75 @@ import { useState } from 'react';
 import { Upload, Sparkles, Target, TrendingUp, FileText, CheckCircle, AlertCircle, X, ArrowRight, Download, Wand2, AlertTriangle } from 'lucide-react';
 import CVEditor from './CVEditor';
 
+// Helper functions to extract CV data
+function extractSkills(text) {
+  const skillKeywords = [
+    'javascript', 'python', 'java', 'react', 'node', 'sql', 'html', 'css',
+    'communication', 'leadership', 'teamwork', 'project management', 'problem solving',
+    'data analysis', 'excel', 'powerpoint', 'microsoft office', 'word', 'outlook',
+    'sales', 'marketing', 'social media', 'customer service', 'accounting',
+    'power bi', 'tableau', 'analytics', 'reporting', 'presentation',
+    'organization', 'time management', 'attention to detail', 'adaptability'
+  ];
+  
+  const foundSkills = [];
+  const lowerText = text.toLowerCase();
+  
+  skillKeywords.forEach(skill => {
+    if (lowerText.includes(skill)) {
+      foundSkills.push(skill.charAt(0).toUpperCase() + skill.slice(1));
+    }
+  });
+  
+  return [...new Set(foundSkills)].slice(0, 15);
+}
+
+function extractExperience(text) {
+  const yearMatches = text.match(/\b(19|20)\d{2}\b/g) || [];
+  const years = yearMatches.map(y => parseInt(y)).filter(y => y >= 1990 && y <= new Date().getFullYear());
+  const experienceYears = years.length >= 2 ? new Date().getFullYear() - Math.min(...years) : 0;
+  
+  return {
+    years: experienceYears,
+    roles: []
+  };
+}
+
+function extractEducation(text) {
+  const education = [];
+  const lowerText = text.toLowerCase();
+  
+  if (lowerText.includes('bachelor') || lowerText.includes('bsc') || lowerText.includes('ba ')) {
+    education.push('Bachelor\'s Degree');
+  }
+  if (lowerText.includes('master') || lowerText.includes('msc') || lowerText.includes('ma ')) {
+    education.push('Master\'s Degree');
+  }
+  if (lowerText.includes('diploma')) {
+    education.push('Diploma');
+  }
+  if (lowerText.includes('matric') || lowerText.includes('high school')) {
+    education.push('Matric/High School');
+  }
+  
+  return education.length > 0 ? education : ['Education not specified'];
+}
+
+function extractName(text) {
+  const lines = text.split('\n').filter(l => l.trim().length > 0);
+  return lines[0]?.trim().substring(0, 50) || 'Job Seeker';
+}
+
+function extractEmail(text) {
+  const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+  return emailMatch ? emailMatch[0] : '';
+}
+
+function extractPhone(text) {
+  const phoneMatch = text.match(/(\+27|0)[0-9\s\-()]{9,15}/);
+  return phoneMatch ? phoneMatch[0] : '';
+}
+
 export default function SmartCVMatcher({ onJobsFound }) {
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -66,49 +135,36 @@ export default function SmartCVMatcher({ onJobsFound }) {
 
     setUploading(true);
 
-    // Determine API URL - use Netlify Functions (backend and frontend in same deployment)
-    const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
-    const apiBase = isProduction ? '' : 'http://localhost:3001'; // Empty string uses same origin in production
-    
-    console.log('🔁 API base URL:', apiBase || 'same-origin (Netlify)');
-
     try {
-      // Step 1: Upload CV and extract data using BACKEND API (has working PDF parsing)
+      // Step 1: Extract text from CV file (browser-side parsing)
+      console.log('📄 Extracting text from:', file.name);
       
-      const formData = new FormData();
-      formData.append('cv', file);
-
-      const uploadUrl = `${apiBase}/api/cv/upload`;
-      console.log('📤 Uploading CV to:', uploadUrl);
+      let extractedText = '';
       
-      const uploadResponse = await fetch(uploadUrl, { 
-        method: 'POST', 
-        body: formData 
+      // Simple text extraction - read file as text
+      const fileText = await file.text();
+      extractedText = fileText;
+      
+      console.log('✅ Extracted text length:', extractedText.length);
+      
+      // Build CV data structure from extracted text
+      const cvData = {
+        fileName: file.name,
+        uploadDate: new Date().toISOString(),
+        text: extractedText,
+        summary: extractedText.substring(0, 500),
+        skills: extractSkills(extractedText),
+        experience: extractExperience(extractedText),
+        education: extractEducation(extractedText),
+        name: extractName(extractedText),
+        email: extractEmail(extractedText),
+        phone: extractPhone(extractedText)
+      };
+      
+      console.log('📊 Parsed CV data:', { 
+        skills: cvData.skills?.length, 
+        experience: cvData.experience 
       });
-
-      console.log('📡 Response status:', uploadResponse.status, uploadResponse.statusText);
-
-      if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        console.error('❌ Upload failed:', errorText);
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          errorData = { error: errorText || 'Failed to upload CV' };
-        }
-        throw new Error(errorData.error || `Upload failed with status ${uploadResponse.status}`);
-      }
-
-      const uploadResult = await uploadResponse.json();
-      console.log('✅ CV uploaded successfully:', uploadResult);
-      
-      const cvData = uploadResult.cvData || uploadResult.data || uploadResult;
-      
-      // Ensure CV data has text field for editor (combine all text if needed)
-      if (!cvData.text && cvData.summary) {
-        cvData.text = `${cvData.name || ''}\n${cvData.email || ''}\n${cvData.phone || ''}\n\n${cvData.summary || ''}\n\nSKILLS:\n${(cvData.skills || []).join(', ')}\n\nEXPERIENCE:\n${(cvData.experience?.roles || []).map(r => `${r.title} at ${r.company}\n${r.description || ''}`).join('\n\n')}\n\nEDUCATION:\n${(cvData.education || []).map(e => `${e.degree || e.field} at ${e.institution}`).join('\n')}`;
-      }
       
       // Store CV data for editor
       setCVDataForEdit(cvData);
@@ -180,10 +236,14 @@ export default function SmartCVMatcher({ onJobsFound }) {
 
       let allJobs = [];
       
-      // Search for jobs using the same API base
+      // Determine API URL for job search
+      const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+      const apiBase = isProduction ? '' : 'http://localhost:3001';
+      
+      // Search for jobs using backend API
       for (const query of searchQueries) {
         try {
-          const searchUrl = `${apiBase}/api/search?q=${encodeURIComponent(query)}&limit=10&source=all`;
+          const searchUrl = `${apiBase}/api/search?q=${encodeURIComponent(query)}&limit=10&source=adzuna`;
           console.log('🔍 Searching jobs:', searchUrl);
           const searchResponse = await fetch(searchUrl);
           

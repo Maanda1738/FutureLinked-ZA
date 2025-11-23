@@ -36,42 +36,64 @@ export default async function handler(req, res) {
     const mimeType = fileData.split(':')[1].split(';')[0];
 
     // Call Gemini AI with file data
-    const prompt = `You are an expert CV/Resume parser. Analyze this CV document and extract ALL information in valid JSON format.
+    const prompt = `You are an expert CV/Resume parser with deep understanding of South African job market and CV formats.
 
-CRITICAL INSTRUCTIONS:
-1. Return ONLY valid JSON, no markdown code blocks, no explanations
-2. Look carefully at their OBJECTIVE, CAREER SUMMARY, or PROFESSIONAL SUMMARY to identify what jobs they WANT
-3. Look at their CURRENT/RECENT job titles to identify their experience level
-4. Extract their ACTUAL skills from the CV, not generic ones
-5. Be SPECIFIC with targetRoles - use exact job titles they mention or that match their experience
+TASK: Extract structured data from this CV/Resume document.
 
-Extract and return this exact JSON structure:
+CRITICAL PARSING RULES:
+1. READ THE ENTIRE DOCUMENT carefully - don't miss any sections
+2. OBJECTIVE/CAREER GOAL section is the MOST important - this tells you what jobs they want
+3. SKILLS section - extract EVERY skill mentioned (technical, software, soft skills, languages, certifications)
+4. WORK EXPERIENCE - note job titles, companies, dates, responsibilities
+5. EDUCATION - all qualifications and institutions
+6. Look for keywords like "seeking", "looking for", "aspiring", "interested in" to identify target roles
+7. If CV mentions specific software (Excel, Python, SQL, Photoshop, etc.) - those are skills
+8. If CV mentions "Junior X" or "Entry-level X" or "Graduate X" - they want those specific roles
+
+RESPONSE FORMAT: Return ONLY valid JSON (no markdown, no code blocks, no explanations):
+
 {
-  "name": "Full name of the candidate",
-  "email": "email@example.com",
-  "phone": "+27 XXX XXX XXXX",
-  "summary": "2-3 sentence professional summary of the candidate",
-  "skills": ["List ACTUAL skills from CV - programming languages, tools, certifications, technical skills, soft skills"],
+  "name": "Extract full name from CV",
+  "email": "Extract email address",
+  "phone": "Extract phone number with country code",
+  "summary": "Write 2-3 sentence summary of who they are and what they want",
+  "skills": [
+    "List EVERY skill mentioned in CV",
+    "Include technical skills (software, tools, languages)",
+    "Include soft skills (communication, leadership, etc.)",
+    "Include certifications and qualifications",
+    "Minimum 5 skills, ideally 10-20 skills"
+  ],
   "experience": {
-    "years": <total years of professional experience as number - calculate from work history dates>,
+    "years": 0,
     "roles": [
-      {"title": "Their ACTUAL Job Title", "company": "Company Name", "duration": "Jan 2020 - Dec 2022", "description": "What they did"}
+      {"title": "Most recent job title", "company": "Company name", "duration": "Start - End dates", "description": "Brief description"}
     ]
   },
-  "education": ["Degree/Qualification at Institution", "Another qualification"],
-  "targetRoles": ["SPECIFIC job titles they're seeking based on their objective/summary - e.g. 'Data Analyst', 'Software Developer', 'Marketing Manager'"],
-  "desiredRoles": ["Alternative job titles that match their skills and experience"],
-  "text": "Full extracted text from CV (first 3000 characters)",
-  "totalExperience": <years as number - same as experience.years>,
-  "currentRole": "Their most recent job title",
-  "seniorityLevel": "entry/junior/mid/senior/lead - based on their experience years and job titles"
+  "education": ["Degree/Diploma/Matric at Institution name"],
+  "targetRoles": [
+    "EXACT job titles they're seeking (from objective/summary)",
+    "Look for phrases like 'seeking X position', 'aspiring X', 'looking for X role'",
+    "If they say 'Junior Data Analyst' - write exactly that",
+    "If they say 'Entry Level Developer' - write exactly that",
+    "Include 2-5 specific job titles"
+  ],
+  "desiredRoles": [
+    "Similar/related job titles that match their skills",
+    "Alternative titles in same field"
+  ],
+  "text": "Copy first 3000 characters of CV text exactly as written",
+  "totalExperience": 0,
+  "currentRole": "Their most recent/current job title",
+  "seniorityLevel": "entry/junior/mid/senior"
 }
 
-IMPORTANT: 
-- If they have 3+ years experience, they are NOT entry-level
-- Look at their OBJECTIVE/SUMMARY for target roles like "Seeking position as X" or "Aspiring Y"
-- Extract REAL skills from the CV, not assumptions
-- Be specific with job titles, not generic like "Office Worker"`;
+EXAMPLES OF GOOD EXTRACTION:
+- If CV says "Seeking Data Analyst position" → targetRoles: ["Data Analyst", "Junior Data Analyst", "Business Analyst"]
+- If CV mentions "Excel, PowerBI, SQL" → skills: ["Microsoft Excel", "Power BI", "SQL", ...]
+- If CV says "Entry-level Marketing" → targetRoles: ["Entry Level Marketing", "Marketing Assistant", "Junior Marketing Coordinator"]
+
+NOW PARSE THE CV DOCUMENT AND RETURN ONLY THE JSON:`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -119,18 +141,30 @@ IMPORTANT:
       throw new Error('Invalid Gemini API response structure');
     }
 
-    console.log('📄 Gemini response (first 200 chars):', textResponse.substring(0, 200));
+    console.log('📄 Gemini raw response length:', textResponse.length);
+    console.log('📄 Gemini response preview:', textResponse.substring(0, 300));
 
     // Clean and parse JSON
     let jsonText = textResponse.trim();
-    jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    
+    // Remove markdown code blocks if present
+    jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
+    // Find JSON object boundaries if there's extra text
+    const jsonStart = jsonText.indexOf('{');
+    const jsonEnd = jsonText.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      jsonText = jsonText.substring(jsonStart, jsonEnd + 1);
+    }
     
     let cvData;
     try {
       cvData = JSON.parse(jsonText);
+      console.log('✅ Successfully parsed CV JSON');
     } catch (parseError) {
-      console.error('❌ Failed to parse JSON:', jsonText.substring(0, 500));
-      throw new Error('AI returned invalid JSON');
+      console.error('❌ JSON Parse Error:', parseError.message);
+      console.error('❌ Failed JSON (first 1000 chars):', jsonText.substring(0, 1000));
+      throw new Error(`AI returned invalid JSON: ${parseError.message}`);
     }
 
     // Ensure required fields
@@ -149,36 +183,50 @@ IMPORTANT:
     });
 
     // Now analyze the CV for suggestions
-    const analysisPrompt = `You are an ATS specialist and career advisor. Analyze this CV and provide insights.
+    const analysisPrompt = `You are an expert ATS specialist and career advisor analyzing a CV.
 
-CV Data: ${JSON.stringify(cvData).substring(0, 2000)}
+CV EXTRACTED DATA:
+${JSON.stringify(cvData, null, 2).substring(0, 2500)}
 
-IMPORTANT: Look at the candidate's:
-1. Current/recent job titles to determine experience level
-2. Objective/summary to identify what jobs they WANT
-3. Skills to determine what roles they're qualified for
-4. Total years of experience
+ANALYSIS TASK:
+1. Read the candidate's targetRoles, skills, experience, and summary
+2. Identify the SPECIFIC job titles they should search for on job boards
+3. Create search terms that will find relevant jobs on platforms like Adzuna, Indeed, LinkedIn
+4. Consider South African job market terminology
 
-Return valid JSON with:
+Return ONLY valid JSON:
 {
-  "score": <0-100>,
-  "atsScore": <0-100>,
-  "description": "Who this candidate is and their background in 2 sentences",
-  "careerSummary": "Professional summary",
+  "score": 75,
+  "atsScore": 70,
+  "description": "2 sentence description of who this candidate is and what they're seeking",
+  "careerSummary": "Professional summary for their profile",
   "suggestions": [
-    {"title": "Suggestion", "description": "Details", "priority": "high/medium/low", "category": "ATS/Content/Format"}
+    {"title": "Improve CV", "description": "Specific suggestion", "priority": "high", "category": "ATS"}
   ],
   "atsIssues": [
-    {"issue": "Problem", "impact": "Impact on ATS", "fix": "How to fix"}
+    {"issue": "Problem found", "impact": "How it affects ATS", "fix": "How to fix it"}
   ],
-  "strengths": ["strength1", "strength2"],
-  "weaknesses": ["weakness1", "weakness2"],
-  "targetRoles": ["SPECIFIC job titles this candidate should apply for - based on their skills, experience, and stated goals - e.g. 'Junior Software Developer', 'Data Analyst', 'Marketing Coordinator'"],
-  "experienceLevel": "entry/junior/mid/senior/expert",
-  "recommendedSearchTerms": ["Search term 1", "Search term 2", "Search term 3"]
+  "strengths": ["What they do well", "Their strong points"],
+  "weaknesses": ["What needs improvement"],
+  "targetRoles": [
+    "Use EXACT job titles from their CV targetRoles field",
+    "If they want 'Data Analyst', write 'Data Analyst'",
+    "Include variations like 'Junior Data Analyst', 'Entry Level Data Analyst'",
+    "Include 3-6 specific job titles"
+  ],
+  "experienceLevel": "entry/junior/mid/senior",
+  "recommendedSearchTerms": [
+    "Best keywords to search on job boards",
+    "Include the specific role name",
+    "Include related role variations",
+    "These will be used for Adzuna API searches"
+  ]
 }
 
-Be SPECIFIC with targetRoles - use actual job titles they're qualified for, not generic terms.`;
+IMPORTANT: 
+- If CV targetRoles has ["Data Analyst"], your targetRoles should be ["Data Analyst", "Junior Data Analyst", "Business Analyst"]
+- recommendedSearchTerms should be practical job board searches like "Data Analyst", "Junior Analyst", "Business Intelligence"
+- Don't use generic terms like "Entry Level" unless that's their actual target`;
 
     const analysisResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,

@@ -6,7 +6,6 @@ import SearchResults from '../components/SearchResults';
 import FilterSort from '../components/FilterSort';
 import Breadcrumbs from '../components/Breadcrumbs';
 import CVUpload from '../components/CVUpload';
-import SmartCVMatcher from '../components/SmartCVMatcher';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { usePageTracking, logSearch } from '../utils/analytics';
@@ -410,28 +409,6 @@ export default function Home() {
           {/* Features Section (when no search) */}
           {!hasSearched && (
             <>
-              {/* Smart CV Search Section */}
-              <div className="py-20 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-                <div className="container mx-auto px-4">
-                  <div className="text-center mb-16">
-                    <div className="inline-block mb-4">
-                      <span className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-6 py-2.5 rounded-full text-sm font-semibold shadow-md">
-                        🤖 AI-POWERED
-                      </span>
-                    </div>
-                    <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-800">
-                      Smart CV Search
-                    </h2>
-                    <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-                      Upload your CV and let our AI find the perfect job matches for you
-                    </p>
-                  </div>
-                  <div className="max-w-4xl mx-auto">
-                    <SmartCVMatcher />
-                  </div>
-                </div>
-              </div>
-
               {/* AdSense Horizontal Ad */}
               <div className="py-8 bg-gray-50">
                 <div className="container mx-auto px-4">

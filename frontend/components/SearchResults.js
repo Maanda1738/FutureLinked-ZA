@@ -4,6 +4,7 @@ import { logShare } from '../utils/analytics';
 import { useState, useEffect } from 'react';
 import { calculateMatchScore } from '../utils/cvMatcher';
 import MatchScore from './MatchScore';
+import { InFeedAd } from './AdSense';
 
 export default function SearchResults({ results, loading, loadingMore, query, totalResults, currentCount, onLoadMore, cvData }) {
   if (loading) {
@@ -99,7 +100,13 @@ export default function SearchResults({ results, loading, loadingMore, query, to
       {/* Job Cards Grid */}
       <div className="space-y-5">
         {results.map((job, index) => (
-          <JobCard key={index} job={job} cvData={cvData} />
+          <>
+            <JobCard key={index} job={job} cvData={cvData} />
+            {/* Insert ad after every 5th job listing */}
+            {(index + 1) % 5 === 0 && index !== results.length - 1 && (
+              <InFeedAd key={`ad-${index}`} className="border border-gray-200 rounded-lg" />
+            )}
+          </>
         ))}
       </div>
 

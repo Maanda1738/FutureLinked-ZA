@@ -34,8 +34,10 @@ async function parseWithAffinda(fileBuffer, fileName, apiKey) {
     
     console.log('📤 Sending to Affinda API...');
     
-    // Always use the resumes endpoint
-    const endpoint = 'https://api.affinda.com/v3/resumes';
+    // Use workspace documents endpoint if workspace exists, otherwise use resumes
+    const endpoint = workspace 
+      ? `https://api.affinda.com/v3/workspaces/${workspace}/documents`
+      : 'https://api.affinda.com/v3/resumes';
     
     const response = await axios.post(endpoint, form, {
       headers: {
@@ -280,14 +282,29 @@ export default async function handler(req, res) {
 
     console.log('🤖 Using Gemini AI to parse CV:', fileName);
     
-    console.log('📄 Using Gemini with file size:', base64String?.length);
+    // First, extract text from PDF using pdf-parse
+    let extractedText = '';
+    try {
+      const pdfParse = require('pdf-parse');
+      const pdfData = await pdfParse(fileBuffer);
+      extractedText = pdfData.text;
+      console.log('📄 Extracted text from PDF:', extractedText.length, 'characters');
+    } catch (pdfError) {
+      console.warn('⚠️ PDF text extraction failed:', pdfError.message);
+      extractedText = 'Could not extract text from PDF';
+    }
     
-    if (!base64String || base64String.length < 100) {
-      throw new Error('Invalid file data - file may be empty or corrupted');
+    if (!extractedText || extractedText.length < 50) {
+      throw new Error('Could not extract readable text from PDF');
     }
 
-    // Call Gemini AI with file data
-    const prompt = `Read this CV/Resume document and extract the information into JSON format.
+    // Call Gemini AI with extracted text (more reliable than vision API)
+    const prompt = `Read this CV/Resume text and extract the information into JSON format.
+
+CV TEXT:
+${extractedText.substring(0, 15000)}
+
+Extract the information into JSON format:
 
 WHAT TO EXTRACT:
 1. NAME - person's full name from top of CV
@@ -336,12 +353,6 @@ Extract the data now:`;
           contents: [
             {
               parts: [
-                {
-                  inline_data: {
-                    mime_type: fileMimeType,
-                    data: base64String
-                  }
-                },
                 {
                   text: prompt
                 }

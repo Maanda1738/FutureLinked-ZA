@@ -37,3 +37,10 @@
   from = "/cv/*"
   to = "/.netlify/functions/api/cv/:splat"
   status = 200
+
+# Ensure ads.txt is served correctly for Google AdSense
+[[headers]]
+  for = "/ads.txt"
+  [headers.values]
+    Content-Type = "text/plain"
+    Cache-Control = "public, max-age=86400"

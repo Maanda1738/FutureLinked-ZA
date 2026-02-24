@@ -40,8 +40,8 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // Body parsing middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Routes
 app.use('/search', searchRoutes);
@@ -65,7 +65,6 @@ app.get('/', (req, res) => {
       cv: {
         upload: '/cv/upload',
         analyze: '/cv/analyze',
-        matchJobs: '/cv/match-jobs',
         edit: '/cv/edit'
       }
     }
@@ -83,7 +82,7 @@ app.use((err, req, res, next) => {
 });
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use((req, res) => {
   res.status(404).json({
     success: false,
     error: 'Endpoint not found'

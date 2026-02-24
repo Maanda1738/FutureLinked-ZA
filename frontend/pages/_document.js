@@ -31,6 +31,13 @@ export default function Document() {
         {/* Google Search Console Verification */}
         <meta name="google-site-verification" content="PSvgAYtMtHjSlq9AanDxuUcF1JtBvJWObHtezovLt8A" />
         
+        {/* Google AdSense */}
+        <script 
+          async 
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3075043359765193"
+          crossOrigin="anonymous"
+        />
+        
         {/* Preconnect to backend API */}
         <link rel="preconnect" href="http://localhost:3001" />
         <link rel="dns-prefetch" href="http://localhost:3001" />

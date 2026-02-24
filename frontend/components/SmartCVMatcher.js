@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Upload, Sparkles, Target, TrendingUp, FileText, CheckCircle, AlertCircle, X, ArrowRight, Download, Wand2, AlertTriangle } from 'lucide-react';
 import CVEditor from './CVEditor';
+import { DisplayAd } from './AdSense';
 
 // Helper functions to extract CV data
 function extractSkills(text) {
@@ -535,6 +536,9 @@ Check console for full details.
                   </button>
                 </div>
               </div>
+
+              {/* AdSense Display Ad */}
+              <DisplayAd className="border border-gray-200 rounded-lg" />
 
               {/* CV Strength Score with ATS Score */}
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-indigo-200 rounded-xl p-6">

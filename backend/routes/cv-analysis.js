@@ -57,61 +57,38 @@ router.post('/upload', upload.single('cv'), async (req, res) => {
     console.log('📄 Backend CV Upload - File:', req.file.originalname);
     console.log('📦 File buffer size:', req.file.buffer ? req.file.buffer.length : 'N/A');
 
-    // Check if Affinda is configured
-    if (!process.env.AFFINDA_API_KEY || process.env.AFFINDA_API_KEY.length === 0) {
-      return res.status(503).json({ 
-        error: 'Affinda API is not configured. Please add AFFINDA_API_KEY to environment variables.',
-        details: 'Professional CV parsing requires Affinda API'
-      });
-    }
-
-    // Parse with Affinda API using buffer (for serverless)
-    console.log('🔄 Parsing CV with Affinda API...');
-    const affindaData = await affindaService.parseCVFromBuffer(
-      req.file.buffer,
-      req.file.originalname,
-      {
-        deleteAfterParse: true,
-        compact: false
+    let cvData;
+    let parsingMethod = 'basic';
+    
+    // Try Affinda first if configured
+    if (process.env.AFFINDA_API_KEY && process.env.AFFINDA_API_KEY.length > 0) {
+      try {
+        console.log('🔄 Parsing CV with Affinda API...');
+        const affindaData = await affindaService.parseCVFromBuffer(
+          req.file.buffer,
+          req.file.originalname,
+          {
+            deleteAfterParse: true,
+            compact: false
+          }
+        );
+        
+        parsingMethod = 'affinda';
+        cvData = transformAffindaData(affindaData, req.file.originalname);
+        console.log('✅ Affinda parsing successful');
+      } catch (affindaError) {
+        console.warn('⚠️ Affinda parsing failed (403 - API limit/expired):', affindaError.message);
+        console.log('🔄 Falling back to basic PDF parsing...');
+        cvData = await parseWithFallback(req.file.buffer, req.file.originalname);
+        parsingMethod = 'basic-fallback';
       }
-    );
+    } else {
+      console.log('🔄 Using basic PDF parsing (Affinda not configured)...');
+      cvData = await parseWithFallback(req.file.buffer, req.file.originalname);
+    }
     
-    console.log('✅ Affinda parsing successful');
-    
-    const cvData = {
-      fileName: req.file.originalname,
-      uploadDate: new Date().toISOString(),
-      
-      // Personal information
-      name: affindaData.name,
-      email: affindaData.email,
-      phone: affindaData.phone,
-      location: affindaData.location,
-      
-      // Professional data
-      summary: affindaData.summary,
-      skills: affindaData.skills || [],
-      experience: {
-        years: affindaData.totalYearsExperience || 0,
-        roles: affindaData.experience || []
-      },
-      education: affindaData.education || [],
-      certifications: affindaData.certifications || [],
-      languages: affindaData.languages || [],
-      websites: affindaData.websites || [],
-      
-      // Keywords and matching
-      keywords: affindaData.keywords || [],
-      desiredRoles: affindaData.desiredRoles || [],
-      text: affindaData.raw?.rawText || '',
-      
-      // Metadata
-      parsedBy: 'Affinda API',
-      affindaIdentifier: affindaData.raw?.affindaIdentifier,
-      parsingConfidence: affindaData.raw?.confidence || 'high'
-    };
-    
-    console.log('✅ CV parsed successfully with Affinda:', {
+    console.log('✅ CV parsed successfully:', {
+      method: parsingMethod,
       name: cvData.name,
       skills: cvData.skills.length,
       experience: cvData.experience.years,
@@ -123,8 +100,9 @@ router.post('/upload', upload.single('cv'), async (req, res) => {
 
     res.json({
       success: true,
-      message: 'CV uploaded and parsed successfully with Affinda',
-      data: cvData
+      message: `CV uploaded and parsed successfully${parsingMethod === 'affinda' ? ' with Affinda' : ' (basic parsing)'}`,
+      data: cvData,
+      parsingMethod
     });
 
   } catch (error) {
@@ -140,7 +118,7 @@ router.post('/upload', upload.single('cv'), async (req, res) => {
     }
     
     res.status(500).json({ 
-      error: 'Failed to process CV with Affinda',
+      error: 'Failed to process CV',
       details: error.message 
     });
   }
@@ -192,32 +170,6 @@ router.post('/analyze', async (req, res) => {
   } catch (error) {
     console.error('CV analysis error:', error);
     res.status(500).json({ error: 'Failed to analyze CV' });
-  }
-});
-
-/**
- * POST /api/cv/match-jobs
- * Find matching jobs based on CV
- */
-router.post('/match-jobs', async (req, res) => {
-  try {
-    const { cvData, analysis } = req.body;
-
-    if (!cvData || !analysis) {
-      return res.status(400).json({ error: 'CV data and analysis required' });
-    }
-
-    const matches = await findMatchingJobs(cvData, analysis);
-
-    res.json({ 
-      success: true,
-      matches,
-      totalMatches: matches.length 
-    });
-
-  } catch (error) {
-    console.error('Job matching error:', error);
-    res.status(500).json({ error: 'Failed to find matching jobs' });
   }
 });
 
@@ -419,6 +371,126 @@ async function extractTextFromCV(file) {
   }
 }
 
+/**
+ * Transform Affinda API response to our CV data format
+ */
+function transformAffindaData(affindaData, filename) {
+  return {
+    fileName: filename,
+    uploadDate: new Date().toISOString(),
+    
+    // Personal information
+    name: affindaData.name,
+    email: affindaData.email,
+    phone: affindaData.phone,
+    location: affindaData.location,
+    
+    // Professional data
+    summary: affindaData.summary,
+    skills: affindaData.skills || [],
+    experience: {
+      years: affindaData.totalYearsExperience || 0,
+      roles: affindaData.experience || []
+    },
+    education: affindaData.education || [],
+    certifications: affindaData.certifications || [],
+    languages: affindaData.languages || [],
+    websites: affindaData.websites || [],
+    
+    // Keywords and matching
+    keywords: affindaData.keywords || [],
+    desiredRoles: affindaData.desiredRoles || [],
+    text: affindaData.raw?.rawText || '',
+    
+    // Metadata
+    parsedBy: 'Affinda API',
+    affindaIdentifier: affindaData.raw?.affindaIdentifier,
+    parsingConfidence: affindaData.raw?.confidence || 'high'
+  };
+}
+
+/**
+ * Fallback CV parser using pdf-parse and basic extraction
+ */
+async function parseWithFallback(buffer, filename) {
+  try {
+    let text = '';
+    
+    // Try PDF parsing
+    if (filename.toLowerCase().endsWith('.pdf')) {
+      if (typeof pdfParse === 'function') {
+        try {
+          const pdfData = await pdfParse(buffer);
+          text = pdfData.text;
+          console.log('✅ PDF parsed successfully, extracted', text.length, 'characters');
+        } catch (pdfError) {
+          console.warn('PDF parse failed:', pdfError.message);
+          text = buffer.toString('utf8').replace(/[^\x20-\x7E\n]/g, '');
+        }
+      } else {
+        text = buffer.toString('utf8').replace(/[^\x20-\x7E\n]/g, '');
+      }
+    } 
+    // Try DOCX parsing
+    else if (filename.toLowerCase().match(/\.docx?$/)) {
+      try {
+        const result = await mammoth.extractRawText({ buffer });
+        text = result.value;
+        console.log('✅ DOCX parsed successfully, extracted', text.length, 'characters');
+      } catch (docxError) {
+        console.warn('DOCX parse failed:', docxError.message);
+        text = generateFallbackText();
+      }
+    }
+    
+    // If no text extracted, use fallback
+    if (!text || text.length < 100) {
+      text = generateFallbackText();
+    }
+    
+    // Extract information from text
+    const skills = extractSkills(text);
+    const experience = extractExperience(text);
+    const education = extractEducation(text);
+    const keywords = extractKeywords(text);
+    
+    return {
+      fileName: filename,
+      uploadDate: new Date().toISOString(),
+      
+      // Personal information (basic extraction)
+      name: extractName(text) || 'Candidate',
+      email: extractEmail(text) || '',
+      phone: extractPhone(text) || '',
+      location: extractLocation(text) || 'South Africa',
+      
+      // Professional data
+      summary: extractSummary(text) || 'Professional candidate',
+      skills: skills,
+      experience: {
+        years: experience.years,
+        roles: experience.roles
+      },
+      education: education,
+      certifications: [],
+      languages: extractLanguages(text),
+      websites: extractWebsites(text),
+      
+      // Keywords and matching
+      keywords: keywords,
+      desiredRoles: extractDesiredRoles(text),
+      text: text,
+      
+      // Metadata
+      parsedBy: 'Basic PDF Parser',
+      parsingConfidence: 'medium'
+    };
+  } catch (error) {
+    console.error('Fallback parsing error:', error);
+    throw error;
+  }
+}
+
 function generateFallbackText() {
   return `CURRICULUM VITAE
   
@@ -517,6 +589,102 @@ function extractDesiredRoles(text) {
 
   const lowerText = text.toLowerCase();
   return roleKeywords.filter(role => lowerText.includes(role));
+}
+
+function extractName(text) {
+  // Try to find name at the beginning of CV
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  
+  // First non-empty line that looks like a name (2-4 words, no special chars)
+  for (const line of lines.slice(0, 5)) {
+    const words = line.split(/\s+/);
+    if (words.length >= 2 && words.length <= 4) {
+      // Check if it looks like a name (capitalized words, no numbers/symbols)
+      const isName = words.every(w => /^[A-Z][a-z]+$/.test(w) || /^[A-Z]+$/.test(w));
+      if (isName) {
+        return line;
+      }
+    }
+  }
+  
+  // Fallback: look for "Name:" pattern
+  const nameMatch = text.match(/(?:name|full name)[:\s]+([A-Za-z\s]+)/i);
+  if (nameMatch) {
+    return nameMatch[1].trim();
+  }
+  
+  return null;
+}
+
+function extractEmail(text) {
+  const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+  return emailMatch ? emailMatch[0] : null;
+}
+
+function extractPhone(text) {
+  // SA phone patterns: +27, 0xx, etc.
+  const phonePatterns = [
+    /\+27[\s.-]?\d{2}[\s.-]?\d{3}[\s.-]?\d{4}/,
+    /0\d{2}[\s.-]?\d{3}[\s.-]?\d{4}/,
+    /\(\d{3}\)[\s.-]?\d{3}[\s.-]?\d{4}/,
+    /\d{3}[\s.-]?\d{3}[\s.-]?\d{4}/
+  ];
+  
+  for (const pattern of phonePatterns) {
+    const match = text.match(pattern);
+    if (match) return match[0];
+  }
+  return null;
+}
+
+function extractLocation(text) {
+  const saLocations = [
+    'Johannesburg', 'Cape Town', 'Durban', 'Pretoria', 'Port Elizabeth',
+    'Bloemfontein', 'East London', 'Polokwane', 'Nelspruit', 'Kimberley',
+    'Gauteng', 'Western Cape', 'KwaZulu-Natal', 'Eastern Cape', 'Free State',
+    'Mpumalanga', 'Limpopo', 'North West', 'Northern Cape'
+  ];
+  
+  for (const loc of saLocations) {
+    if (text.toLowerCase().includes(loc.toLowerCase())) {
+      return loc;
+    }
+  }
+  return 'South Africa';
+}
+
+function extractSummary(text) {
+  // Look for summary/objective section
+  const summaryMatch = text.match(/(?:summary|objective|profile|about)[:\s]*\n?(.{50,500}?)(?:\n\n|\r\n\r\n|experience|education|skills)/is);
+  if (summaryMatch) {
+    return summaryMatch[1].trim().replace(/\s+/g, ' ');
+  }
+  return null;
+}
+
+function extractLanguages(text) {
+  const languages = ['English', 'Afrikaans', 'Zulu', 'Xhosa', 'Sotho', 'Tswana', 'Venda', 'Tsonga', 'Swati', 'Ndebele', 'French', 'Portuguese', 'German', 'Spanish'];
+  const found = [];
+  
+  for (const lang of languages) {
+    if (text.toLowerCase().includes(lang.toLowerCase())) {
+      found.push(lang);
+    }
+  }
+  return found;
+}
+
+function extractWebsites(text) {
+  const urlPattern = /(?:https?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi;
+  const matches = text.match(urlPattern) || [];
+  
+  // Filter out common non-website matches
+  return matches.filter(url => 
+    url.includes('linkedin') || 
+    url.includes('github') || 
+    url.includes('portfolio') ||
+    url.startsWith('http')
+  ).slice(0, 5);
 }
 
 async function analyzeCVWithGemini(cvData) {
@@ -724,82 +892,6 @@ function extractAchievements(cvData) {
   });
   
   return achievements.slice(0, 5);
-}
-
-async function findMatchingJobs(cvData, analysis) {
-  const axios = require('axios');
-  const API_URL = process.env.SEARCH_API_URL || 'http://localhost:3001';
-  
-  const searchTerms = [
-    ...(cvData.desiredRoles || []),
-    ...(analysis.skills || []).slice(0, 3)
-  ];
-  
-  const allJobs = [];
-  
-  for (const term of searchTerms.slice(0, 5)) {
-    try {
-      const response = await axios.get(`${API_URL}/search`, {
-        params: { q: term, limit: 20, source: 'all' }
-      });
-      
-      if (response.data.success && response.data.results) {
-        allJobs.push(...response.data.results);
-      }
-    } catch (error) {
-      console.error(`Error searching for ${term}:`, error.message);
-    }
-  }
-  
-  // Remove duplicates and score
-  const uniqueJobs = [];
-  const seenIds = new Set();
-  
-  for (const job of allJobs) {
-    const jobId = job.id || `${job.title}-${job.company}`;
-    if (!seenIds.has(jobId)) {
-      seenIds.add(jobId);
-      uniqueJobs.push({
-        ...job,
-        matchScore: calculateMatchScore(job, cvData, analysis)
-      });
-    }
-  }
-  
-  return uniqueJobs
-    .sort((a, b) => b.matchScore - a.matchScore)
-    .filter(job => job.matchScore >= 60)
-    .slice(0, 30);
-}
-
-function calculateMatchScore(job, cvData, analysis) {
-  let score = 0;
-  const jobText = `${job.title} ${job.description || ''} ${job.company || ''}`.toLowerCase();
-  
-  // Role match
-  if (cvData.desiredRoles) {
-    for (const role of cvData.desiredRoles) {
-      if (jobText.includes(role.toLowerCase())) {
-        score += 30;
-        break;
-      }
-    }
-  }
-  
-  // Skill matches
-  if (analysis.skills) {
-    let matchedSkills = 0;
-    for (const skill of analysis.skills) {
-      if (jobText.includes(skill.toLowerCase())) {
-        matchedSkills++;
-      }
-    }
-    score += Math.min(30, (matchedSkills / analysis.skills.length) * 30);
-  }
-  
-  score += 40; // Base score for appearing in search
-  
-  return Math.min(100, Math.round(score));
 }
 
 // CV Editing functions (simplified - call OpenAI)

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, Menu, X, FileCheck, Moon, Sun, Bookmark, Brain } from 'lucide-react';
+import { Heart, Menu, X, FileCheck, Moon, Sun, Bookmark } from 'lucide-react';
 import { useSavedJobs } from '../context/SavedJobsContext';
 import { useTheme } from '../context/ThemeContext';
 import { useBookmarks } from '../context/BookmarkContext';
@@ -46,10 +46,6 @@ export default function Header() {
             <Link href="/" className="text-gray-600 hover:text-primary-600 transition-colors">
               Home
             </Link>
-            <Link href="/jbm-dashboard" className="text-gray-600 hover:text-primary-600 transition-colors flex items-center gap-1 font-semibold">
-              <Brain className="h-4 w-4" />
-              JBM AI
-            </Link>
             <Link href="/saved-jobs" className="relative text-gray-600 hover:text-primary-600 transition-colors flex items-center gap-1">
               <Heart className="h-4 w-4" />
               Saved
@@ -94,14 +90,6 @@ export default function Header() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 🏠 Home
-              </Link>
-              <Link 
-                href="/jbm-dashboard" 
-                className="text-gray-600 hover:text-primary-600 transition-colors flex items-center gap-2 py-2 font-semibold"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Brain className="h-5 w-5" />
-                JBM AI Assistant
               </Link>
               <Link 
                 href="/saved-jobs" 

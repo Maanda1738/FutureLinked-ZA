@@ -44,3 +44,10 @@
   [headers.values]
     Content-Type = "text/plain"
     Cache-Control = "public, max-age=86400"
+
+# Serve ads.txt from the correct location
+[[redirects]]
+  from = "/ads.txt"
+  to = "/ads.txt"
+  status = 200
+  force = true
